@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FBT Demo - Performance Cycle (Englewood, CO)</title>
+</head>
+<body>
+  <h1>Performance Cycle – Cart Demo</h1>
+  <p><strong>Items in cart:</strong> <span id="cart-items">helmet-001</span></p>
+  <p><em>Add a helmet to see visor, pinlock, chin curtain, and helmet bag recommendations.</em></p>
+  <button onclick="setCart(['helmet-001'])">Helmet in cart</button>
+  <button onclick="setCart(['jacket-001'])">Jacket in cart</button>
+  <button onclick="setCart(['helmet-001','visor-001'])">Helmet + visor</button>
+
+  <hr>
+  <div id="fbt-widget"></div>
+
+  <script src="fbt-widget.js"></script>
+  <script>
+    const productCatalog = {
+      'helmet-001': { name: 'Arai Signet-X Helmet', image: 'https://placehold.co/200x200?text=Helmet', url: '#', price: 649.99 },
+      'visor-001': { name: 'Arai Clear Visor', image: 'https://placehold.co/200x200?text=Visor', url: '#', price: 89.99 },
+      'pinlock-001': { name: 'Pinlock Anti-Fog Insert', image: 'https://placehold.co/200x200?text=Pinlock', url: '#', price: 49.99 },
+      'chin-curtain-001': { name: 'Chin Curtain', image: 'https://placehold.co/200x200?text=Chin+Curtain', url: '#', price: 24.99 },
+      'helmet-bag-001': { name: 'Helmet Bag', image: 'https://placehold.co/200x200?text=Helmet+Bag', url: '#', price: 34.99 },
+      'jacket-001': { name: 'Dainese Leather Jacket', image: 'https://placehold.co/200x200?text=Jacket', url: '#', price: 449.99 },
+      'back-protector-001': { name: 'CE Back Protector', image: 'https://placehold.co/200x200?text=Back+Protector', url: '#', price: 119.99 },
+      'gloves-001': { name: 'Alpinestars GP Pro Gloves', image: 'https://placehold.co/200x200?text=Gloves', url: '#', price: 189.99 },
+      'glove-liners-001': { name: 'Glove Liners', image: 'https://placehold.co/200x200?text=Liners', url: '#', price: 19.99 },
+      'boots-001': { name: 'Sidi Adventure Boots', image: 'https://placehold.co/200x200?text=Boots', url: '#', price: 329.99 },
+      'boot-oil-001': { name: 'Boot Care Kit', image: 'https://placehold.co/200x200?text=Boot+Care', url: '#', price: 14.99 },
+      'boot-insoles-001': { name: 'Boot Insoles', image: 'https://placehold.co/200x200?text=Insoles', url: '#', price: 29.99 },
+      'helmet-002': { name: 'Shoei RF-1400 Helmet', image: 'https://placehold.co/200x200?text=Shoei', url: '#', price: 549.99 },
+      'visor-002': { name: 'Shoei Clear Visor', image: 'https://placehold.co/200x200?text=Shoei+Visor', url: '#', price: 79.99 },
+    };
+
+    let cartIds = ['helmet-001'];
+
+    function setCart(ids) {
+      cartIds = ids;
+      document.getElementById('cart-items').textContent = cartIds.join(', ');
+      FBTWidget.refresh(cartIds);
+    }
+
+    FBTWidget.init({
+      apiUrl: 'http://localhost:5000',
+      cartProductIds: cartIds,
+      productCatalog,
+      title: 'Recommended for You',
+      onAddToCart: (id) => {
+        alert('Add to cart: ' + (productCatalog[id]?.name || id));
+        cartIds = [...cartIds, id];
+        document.getElementById('cart-items').textContent = cartIds.join(', ');
+        FBTWidget.refresh(cartIds);
+      }
+    });
+  </script>
+</body>
+</html>

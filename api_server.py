@@ -11,7 +11,7 @@ import csv
 import json
 import os
 from pathlib import Path
-from flask import Flask, request, jsonify, send_from_directory, render_template_string
+from flask import Flask, request, jsonify, send_from_directory, render_template_string, redirect
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -163,10 +163,7 @@ def serve_widget_js():
 
 @app.route("/")
 def root():
-    return jsonify({
-        "status": "ok",
-        "message": "Use /simulate to preview widget, /api/fbt for API.",
-    })
+    return redirect("/simulate", code=302)
 
 
 @app.route("/simulate")

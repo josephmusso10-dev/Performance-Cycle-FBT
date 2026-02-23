@@ -32,6 +32,95 @@ CSV columns:
 - `Label`
 - `Type` (`Explicit` or `Category`)
 
+### Validate recommendation quality
+
+Run:
+
+```bash
+./validate
+```
+
+Optional:
+
+```bash
+./validate --csv product_recommendations.csv --max-output 100
+```
+
+This validator checks complementary item pairing and flags likely helmet accessory compatibility mismatches.
+
+### Source-backed strict compatibility (fit-sensitive accessories only)
+
+Build the verification checklist:
+
+```bash
+./build-proofs-template
+```
+
+This creates `compatibility_proofs.csv` for helmet -> fit-sensitive accessory pairs (e.g., shields/pinlock/cheek pads), including a suggested Google search URL per pair.
+
+After verifying each pair, fill:
+- `Compatibility Verified` (yes/no)
+- `Compatibility Source` (manufacturer/product URL)
+- `Compatibility Notes` (optional)
+
+Run strict validation:
+
+```bash
+./validate-strict
+```
+
+Optional strict mode with heuristic fallback (brand/model overlap only):
+
+```bash
+./validate-strict --allow-heuristic-fit
+```
+
+Note: strict proof is required only for fit-sensitive helmet accessories. General complementary pairs like jacket ↔ pants do not require source proof.
+
+### Auto-fix definite mismatches
+
+Auto-fix rows currently classified as `definite mismatch` (helmet brand conflict for fit-sensitive accessories):
+
+```bash
+./autofix-mismatches --dry-run
+```
+
+Write to a new file:
+
+```bash
+./autofix-mismatches --out product_recommendations.autofixed.csv
+```
+
+Overwrite in place (creates timestamped `.bak` backup automatically):
+
+```bash
+./autofix-mismatches --in-place
+```
+
+This only changes `definite mismatch` rows. It does not auto-fix `missing proof` rows.
+
+### Auto-validate on every CSV update
+
+Run this watcher in a terminal:
+
+```bash
+./validate-watch
+```
+
+Optional tuning:
+
+```bash
+./validate-watch --csv product_recommendations.csv --interval 1.0 --settle 0.75 --max-output 20
+```
+
+The watcher stays running and automatically re-validates after each CSV save. Press `Ctrl+C` to stop.
+
+Strict watcher mode:
+
+```bash
+./validate-watch-strict
+```
+
 ## API Endpoints
 
 | Endpoint | Method | Description |
@@ -42,6 +131,39 @@ CSV columns:
 | `/api/debug/product` | GET | `?id=product-slug` → show exact match source |
 | `/simulate` | GET | browser simulation page |
 | `/widget/fbt-widget.js` | GET | embeddable widget JS |
+
+## BigCommerce Auto-Sync (All In-Stock Products)
+
+You can auto-generate recommendations for all in-stock products from BigCommerce.
+
+1) Create `.env` in project root:
+
+```env
+BC_ACCESS_TOKEN=your_access_token
+BC_API_BASE=https://api.bigcommerce.com
+# Prefer this if BigCommerce gave you an API path directly:
+# BC_API_PATH=https://api.bigcommerce.com/stores/<store_hash>/v3
+# Otherwise use:
+# BC_STORE_HASH=7n1vmei
+```
+
+2) Install deps:
+
+```bash
+pip install -r requirements.txt
+```
+
+3) Generate CSV:
+
+```bash
+python sync_bigcommerce_recommendations.py
+```
+
+This writes `product_recommendations.csv` with:
+- `Type=Explicit` for every in-stock product (using slug identifier)
+- Exactly 3 recommendations per product
+- `Priority`: Primary, Secondary, Tertiary
+- `Primary/Secondary` sorted by highest recommendation price
 
 ## Deploy (Render)
 

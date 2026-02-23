@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+python3 "${SCRIPT_DIR}/build_compatibility_proofs_template.py" --csv "${SCRIPT_DIR}/product_recommendations.csv" --out "${SCRIPT_DIR}/compatibility_proofs.csv" "$@"

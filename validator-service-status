@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LABEL="com.joseph.fbt.validator"
+GUI_DOMAIN="gui/$(id -u)"
+
+launchctl print "${GUI_DOMAIN}/${LABEL}" | awk '
+  /state =/ || /pid =/ || /last exit code =/ { print }
+'

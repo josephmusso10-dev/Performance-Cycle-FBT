@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LABEL="com.joseph.fbt.validator"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLIST_SRC="${SCRIPT_DIR}/launchd/${LABEL}.plist"
+PLIST_DST="${HOME}/Library/LaunchAgents/${LABEL}.plist"
+LOG_DIR="${SCRIPT_DIR}/.validator-logs"
+GUI_DOMAIN="gui/$(id -u)"
+
+mkdir -p "${LOG_DIR}"
+
+# Reload cleanly if already present.
+launchctl bootout "${GUI_DOMAIN}/${LABEL}" >/dev/null 2>&1 || true
+cp "${PLIST_SRC}" "${PLIST_DST}"
+launchctl bootstrap "${GUI_DOMAIN}" "${PLIST_DST}"
+launchctl kickstart -k "${GUI_DOMAIN}/${LABEL}"
+
+echo "Installed and started ${LABEL}"
+echo "Logs:"
+echo "  ${LOG_DIR}/validator.out.log"
+echo "  ${LOG_DIR}/validator.err.log"

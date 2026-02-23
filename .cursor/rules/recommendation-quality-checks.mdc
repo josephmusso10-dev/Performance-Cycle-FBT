@@ -1,0 +1,18 @@
+---
+description: Enforce recommendation correctness for product_recommendations.csv
+globs: product_recommendations.csv
+alwaysApply: false
+---
+
+# Recommendation Quality Checks
+
+When editing or reviewing `product_recommendations.csv`, validate every recommendation before finalizing changes.
+
+- Recommendations must be complementary items, not the same product type.
+- Example: pants should recommend jackets, gloves, or boots, not more pants.
+- Avoid duplicate or near-duplicate recommendations for the same source product.
+- If compatibility is required, only recommend accessories that fit the specific product model.
+- Helmet-specific rule: face shields, visors, pinlock inserts, and other helmet accessories must explicitly match the helmet brand/model.
+- If compatibility is uncertain, mark it for manual verification instead of keeping it as a valid recommendation.
+
+Before completion, report any rows that fail these checks and propose corrected recommendations.

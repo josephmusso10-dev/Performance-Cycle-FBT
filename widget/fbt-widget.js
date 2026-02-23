@@ -24,7 +24,7 @@
     productCatalog: {},
     containerId: 'fbt-widget',
     maxRecommendations: 6,
-    title: 'Recommended for You',
+    title: 'Frequently Bought Together',
     onAddToCart: null,  // Optional: (productId) => {} - called when user clicks add
     emptyMessage: 'Add items to your cart to see recommendations.',
     loadingMessage: 'Loading recommendations...',
@@ -49,7 +49,7 @@
             ${price ? `<span class="fbt-product-price">${price}</span>` : ''}
           </div>
         </a>
-        <button type="button" class="fbt-add-btn" data-id="${id}">Add to Cart</button>
+        <button type="button" class="fbt-add-btn button button--small" data-id="${id}">Add to Cart</button>
       </div>
     `;
   }
@@ -65,19 +65,52 @@
     const style = document.createElement('style');
     style.id = 'fbt-widget-styles';
     style.textContent = `
-      .fbt-widget { font-family: system-ui, -apple-system, sans-serif; padding: 1.5rem 0; }
-      .fbt-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1a1a1a; }
-      .fbt-products { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; }
-      .fbt-product { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden; }
+      .fbt-widget {
+        --fbt-border: #e5e5e5;
+        --fbt-text: #222;
+        --fbt-muted: #6b7280;
+        --fbt-bg: #fff;
+        --fbt-btn-bg: #111;
+        --fbt-btn-hover: #333;
+        font-family: inherit;
+        color: var(--fbt-text);
+        padding: 1.25rem 0;
+        border-top: 1px solid var(--fbt-border);
+      }
+      .fbt-title {
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin: 0 0 0.85rem;
+        color: var(--fbt-text);
+        letter-spacing: 0.01em;
+      }
+      .fbt-products { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.85rem; }
+      .fbt-product { background: var(--fbt-bg); border: 1px solid var(--fbt-border); border-radius: 3px; overflow: hidden; }
       .fbt-product-link { display: block; text-decoration: none; color: inherit; }
       .fbt-product-img { width: 100%; aspect-ratio: 1; object-fit: cover; }
-      .fbt-product-info { padding: 0.75rem; }
-      .fbt-product-name { display: block; font-size: 0.9rem; font-weight: 500; }
-      .fbt-product-label { display: block; font-size: 0.8rem; color: #666; margin-top: 0.15rem; }
-      .fbt-product-price { display: block; font-size: 0.85rem; color: #0a0; margin-top: 0.25rem; }
-      .fbt-add-btn { width: 100%; padding: 0.5rem; background: #000; color: #fff; border: none; cursor: pointer; font-size: 0.85rem; }
-      .fbt-add-btn:hover { background: #333; }
-      .fbt-empty, .fbt-loading { color: #666; font-size: 0.95rem; }
+      .fbt-product-info { padding: 0.65rem 0.75rem 0.35rem; min-height: 78px; }
+      .fbt-product-name { display: block; font-size: 0.87rem; font-weight: 600; line-height: 1.35; }
+      .fbt-product-label { display: block; font-size: 0.78rem; color: var(--fbt-muted); margin-top: 0.15rem; line-height: 1.35; }
+      .fbt-product-price { display: block; font-size: 0.87rem; color: var(--fbt-text); margin-top: 0.35rem; font-weight: 600; }
+      .fbt-add-btn {
+        width: calc(100% - 1rem);
+        margin: 0.3rem 0.5rem 0.6rem;
+        padding: 0.5rem 0.65rem;
+        background: var(--fbt-btn-bg);
+        color: #fff;
+        border: 1px solid var(--fbt-btn-bg);
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+      .fbt-add-btn:hover { background: var(--fbt-btn-hover); border-color: var(--fbt-btn-hover); }
+      .fbt-empty, .fbt-loading { color: var(--fbt-muted); font-size: 0.92rem; }
+      @media (max-width: 640px) {
+        .fbt-products { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
+      }
     `;
     document.head.appendChild(style);
   }

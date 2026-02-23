@@ -57,7 +57,8 @@ def _load_rules_from_csv():
             if not product_id or not rec_id:
                 continue
 
-            rec = {"id": rec_id, "label": label}
+            priority = (row.get("Priority") or "").strip()
+            rec = {"id": rec_id, "label": label, "priority": priority}
             if row_type == "category":
                 keywords = tuple(_parse_category_keywords(product_id))
                 if not keywords:
@@ -283,7 +284,8 @@ def get_frequently_bought_together():
         return jsonify({"recommendations": [], "message": "No products in cart"})
 
     explicit_map, category_rules = _load_rules_from_csv()
-    rec_info = {}  # id -> {count, label}
+    priority_rank = {"Primary": 0, "Secondary": 1, "Tertiary": 2}
+    rec_info = {}  # id -> {count, label, priority}
     for cart_id in cart_product_ids:
         related_list = get_recommendations(cart_id, explicit_map, category_rules)
         for item in related_list:
@@ -291,14 +293,29 @@ def get_frequently_bought_together():
             rid = r.get("id", r) if isinstance(r, dict) else r
             if rid not in cart_product_ids:
                 if rid not in rec_info:
-                    rec_info[rid] = {"count": 0, "label": r.get("label", "") if isinstance(r, dict) else ""}
+                    rec_info[rid] = {
+                        "count": 0,
+                        "label": r.get("label", "") if isinstance(r, dict) else "",
+                        "priority": r.get("priority", "") if isinstance(r, dict) else "",
+                    }
                 rec_info[rid]["count"] += 1
                 if r.get("label") and not rec_info[rid]["label"]:
                     rec_info[rid]["label"] = r.get("label", "")
+                # Keep the best (highest) priority if multiple cart items suggest same recommendation
+                current = rec_info[rid].get("priority", "")
+                incoming = r.get("priority", "") if isinstance(r, dict) else ""
+                if incoming and (
+                    not current
+                    or priority_rank.get(incoming, 99) < priority_rank.get(current, 99)
+                ):
+                    rec_info[rid]["priority"] = incoming
 
     recommendations = [
-        {"id": rid, "label": info["label"] or None}
-        for rid, info in sorted(rec_info.items(), key=lambda x: -x[1]["count"])
+        {"id": rid, "label": info["label"] or None, "priority": info.get("priority") or None}
+        for rid, info in sorted(
+            rec_info.items(),
+            key=lambda x: (-x[1]["count"], priority_rank.get(x[1].get("priority", ""), 99)),
+        )
     ]
 
     return jsonify({

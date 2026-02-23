@@ -94,6 +94,20 @@ TOKEN_STOPWORDS = {
     "single", "dual", "unit", "pack",
 }
 
+# Riding-style classification: street vs dirt.
+RIDING_TYPE_RULES = {
+    "dirt": [
+        "dirt", "mx", "motocross", "offroad", "off-road", "enduro",
+        "trail", "atv", "cross", "dualsport", "dual-sport", "adventure", "adv",
+        "sx", "fx", "kawasaki kx", "yz", "crf", "rmz", "ktm exc", "husqvarna fe",
+    ],
+    "street": [
+        "street", "sportbike", "supersport", "touring", "commuter",
+        "cruiser", "harley", "goldwing", "roadsmart", "pilot road",
+        "rpha", "x-15", "rf-1400", "neotec", "pista", "corsair",
+    ],
+}
+
 
 def parse_slug(custom_url: dict) -> str:
     if not custom_url:
@@ -197,6 +211,23 @@ def detect_product_type(product: Product) -> str:
     return "other"
 
 
+def detect_riding_type(product: Product) -> str:
+    hay = " ".join(
+        [
+            normalize_text(product.slug),
+            normalize_text(product.name),
+            " ".join(normalize_text(cn) for cn in product.category_names),
+        ]
+    )
+    dirt_hit = any(kw in hay for kw in RIDING_TYPE_RULES["dirt"])
+    street_hit = any(kw in hay for kw in RIDING_TYPE_RULES["street"])
+    if dirt_hit and not street_hit:
+        return "dirt"
+    if street_hit and not dirt_hit:
+        return "street"
+    return "unknown"
+
+
 def brand_token(product: Product) -> str:
     toks = tokenize(product.slug)
     return toks[0] if toks else ""
@@ -241,19 +272,30 @@ def compatible_helmet_accessories(source: Product, candidates: List[Product]) ->
 def choose_three(
     source: Product,
     source_type: str,
+    source_riding: str,
     by_slug: Dict[str, Product],
     by_category: Dict[int, List[str]],
     all_slugs_sorted_by_price: List[str],
     by_type: Dict[str, List[str]],
     product_type: Dict[str, str],
+    riding_type: Dict[str, str],
 ) -> List[Product]:
     seen = set([source.slug])
     picked: List[Product] = []
 
+    def is_riding_match(slug: str) -> bool:
+        if source_riding == "unknown":
+            return True
+        return riding_type.get(slug, "unknown") == source_riding
+
     # 0) Compatibility-first for helmets: prefer matching shields/visors/pinlocks
     if source_type == "helmet":
         helmet_acc_slugs = by_type.get("helmet_accessory", [])
-        helmet_acc_candidates = [by_slug[s] for s in helmet_acc_slugs if s in by_slug and s not in seen]
+        helmet_acc_candidates = [
+            by_slug[s]
+            for s in helmet_acc_slugs
+            if s in by_slug and s not in seen and is_riding_match(s)
+        ]
         for p in compatible_helmet_accessories(source, helmet_acc_candidates):
             picked.append(p)
             seen.add(p.slug)
@@ -265,7 +307,7 @@ def choose_three(
     comp_slugs = []
     for t in complementary:
         comp_slugs.extend(by_type.get(t, []))
-    comp_candidates = [by_slug[s] for s in comp_slugs if s in by_slug and s not in seen]
+    comp_candidates = [by_slug[s] for s in comp_slugs if s in by_slug and s not in seen and is_riding_match(s)]
     ranked = rank_candidates(source, comp_candidates)
     for p in ranked:
         if p.slug not in seen:
@@ -285,6 +327,7 @@ def choose_three(
         if s in by_slug
         and s not in seen
         and product_type.get(s, "other") != source_type
+        and is_riding_match(s)
     ]
     ranked = rank_candidates(source, category_candidates)
     for p in ranked:
@@ -301,6 +344,7 @@ def choose_three(
         and source.brand_id
         and p.brand_id == source.brand_id
         and product_type.get(p.slug, "other") != source_type
+        and is_riding_match(p.slug)
     ]
     same_brand = sorted(same_brand, key=lambda p: p.price, reverse=True)
     for p in same_brand:
@@ -312,6 +356,8 @@ def choose_three(
     # 4) Global expensive fill, still avoiding same type when possible
     for slug in all_slugs_sorted_by_price:
         if slug in seen:
+            continue
+        if not is_riding_match(slug):
             continue
         if product_type.get(slug, "other") == source_type:
             continue
@@ -328,6 +374,8 @@ def choose_three(
     if source_type == "other":
         for slug in all_slugs_sorted_by_price:
             if slug in seen:
+                continue
+            if not is_riding_match(slug):
                 continue
             p = by_slug.get(slug)
             if not p:
@@ -392,26 +440,31 @@ def main():
     by_category = defaultdict(list)
     by_type = defaultdict(list)
     product_type = {}
+    riding_type = {}
     for p in products:
         for cid in p.categories:
             by_category[cid].append(p.slug)
         ptype = detect_product_type(p)
         product_type[p.slug] = ptype
         by_type[ptype].append(p.slug)
+        riding_type[p.slug] = detect_riding_type(p)
 
     all_slugs_sorted_by_price = [p.slug for p in sorted(products, key=lambda p: p.price, reverse=True)]
 
     out_rows = []
     for p in sorted(products, key=lambda x: x.slug):
         ptype = product_type.get(p.slug, "other")
+        rtype = riding_type.get(p.slug, "unknown")
         picks = choose_three(
             p,
             ptype,
+            rtype,
             by_slug,
             by_category,
             all_slugs_sorted_by_price,
             by_type,
             product_type,
+            riding_type,
         )
         picks = sorted(picks, key=lambda x: x.price, reverse=True)[:3]
         for idx, rec in enumerate(picks):
@@ -423,6 +476,8 @@ def main():
                 "Type": "Explicit",
                 "Priority": PRIORITIES[idx] if idx < len(PRIORITIES) else "",
                 "Estimated Price": f"{rec.price:.2f}",
+                "Source Riding Type": rtype,
+                "Recommended Riding Type": riding_type.get(rec.slug, "unknown"),
             })
 
     # Preserve existing category rows for fallback behavior
@@ -436,12 +491,23 @@ def main():
             "Type": "Category",
             "Priority": row.get("Priority", ""),
             "Estimated Price": row.get("Estimated Price", ""),
+            "Source Riding Type": row.get("Source Riding Type", ""),
+            "Recommended Riding Type": row.get("Recommended Riding Type", ""),
         })
 
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(
             f,
-            fieldnames=["Product ID", "Recommended Product ID", "Label", "Type", "Priority", "Estimated Price"],
+            fieldnames=[
+                "Product ID",
+                "Recommended Product ID",
+                "Label",
+                "Type",
+                "Priority",
+                "Estimated Price",
+                "Source Riding Type",
+                "Recommended Riding Type",
+            ],
         )
         writer.writeheader()
         writer.writerows(out_rows)

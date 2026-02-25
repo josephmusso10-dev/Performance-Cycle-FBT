@@ -52,7 +52,7 @@ To ensure recommendation cards link to real product pages without theme-side cat
 Set these env vars in Vercel:
 
 - `STOREFRONT_BASE_URL` = your storefront domain (example: `https://performancecycle.com`)
-- `STOREFRONT_PRODUCT_PATH_PATTERN` = product URL pattern (default fallback is `/{slug}/`; common alternative `/products/{slug}/`)
+- `STOREFRONT_PRODUCT_PATH_PATTERN` = product URL pattern (default fallback is `/products/{slug}/`)
 
 Optional (for authoritative product URLs/images/prices via BigCommerce Catalog API):
 

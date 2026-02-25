@@ -30,13 +30,20 @@
     loadingMessage: 'Loading recommendations...',
   };
 
+  function getProductUrl(id, catalog) {
+    const p = catalog[id] || {};
+    if (p.url && typeof p.url === 'string' && p.url.trim()) return p.url;
+    // Fallback assumes recommendation IDs are storefront slugs.
+    return `/${id}/`;
+  }
+
   function renderProduct(rec, catalog) {
     const id = rec.id || rec;
     const label = rec.label || '';
     const p = catalog[id] || {};
     const name = p.name || id;
     const image = p.image || '';
-    const url = p.url || '#';
+    const url = getProductUrl(id, catalog);
     const price = p.price ? `$${parseFloat(p.price).toFixed(2)}` : '';
 
     return `
@@ -158,7 +165,7 @@
               if (typeof config.onAddToCart === 'function') {
                 config.onAddToCart(id);
               } else {
-                window.location.href = (config.productCatalog[id] || {}).url || '#';
+                window.location.href = getProductUrl(id, config.productCatalog);
               }
             });
           });

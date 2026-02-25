@@ -27,6 +27,18 @@
     title: 'Frequently Bought Together',
     productUrlBase: '', // Optional, e.g. "https://performancecycle.com"
     productUrlPattern: '/products/{slug}/', // BigCommerce default product URL pattern
+    theme: {
+      border: '#e5e5e5',
+      text: '#222',
+      muted: '#6b7280',
+      bg: '#fff',
+      buttonBg: '#111',
+      buttonHover: '#333',
+      radius: '3px',
+      headingSize: '1.15rem',
+      cardNameSize: '0.87rem',
+      buttonTextColor: '#fff'
+    },
     onAddToCart: null,  // Optional: (productId) => {} - called when user clicks add
     emptyMessage: 'Add items to your cart to see recommendations.',
     loadingMessage: 'Loading recommendations...',
@@ -84,24 +96,28 @@
         --fbt-bg: #fff;
         --fbt-btn-bg: #111;
         --fbt-btn-hover: #333;
+        --fbt-btn-text: #fff;
+        --fbt-radius: 3px;
+        --fbt-heading-size: 1.15rem;
+        --fbt-card-name-size: 0.87rem;
         font-family: inherit;
         color: var(--fbt-text);
         padding: 1.25rem 0;
         border-top: 1px solid var(--fbt-border);
       }
       .fbt-title {
-        font-size: 1.15rem;
+        font-size: var(--fbt-heading-size);
         font-weight: 600;
         margin: 0 0 0.85rem;
         color: var(--fbt-text);
         letter-spacing: 0.01em;
       }
       .fbt-products { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.85rem; }
-      .fbt-product { background: var(--fbt-bg); border: 1px solid var(--fbt-border); border-radius: 3px; overflow: hidden; }
+      .fbt-product { background: var(--fbt-bg); border: 1px solid var(--fbt-border); border-radius: var(--fbt-radius); overflow: hidden; }
       .fbt-product-link { display: block; text-decoration: none; color: inherit; }
       .fbt-product-img { width: 100%; aspect-ratio: 1; object-fit: cover; }
       .fbt-product-info { padding: 0.65rem 0.75rem 0.35rem; min-height: 78px; }
-      .fbt-product-name { display: block; font-size: 0.87rem; font-weight: 600; line-height: 1.35; }
+      .fbt-product-name { display: block; font-size: var(--fbt-card-name-size); font-weight: 600; line-height: 1.35; }
       .fbt-product-label { display: block; font-size: 0.78rem; color: var(--fbt-muted); margin-top: 0.15rem; line-height: 1.35; }
       .fbt-product-price { display: block; font-size: 0.87rem; color: var(--fbt-text); margin-top: 0.35rem; font-weight: 600; }
       .fbt-add-btn {
@@ -109,9 +125,9 @@
         margin: 0.3rem 0.5rem 0.6rem;
         padding: 0.5rem 0.65rem;
         background: var(--fbt-btn-bg);
-        color: #fff;
+        color: var(--fbt-btn-text);
         border: 1px solid var(--fbt-btn-bg);
-        border-radius: 3px;
+        border-radius: var(--fbt-radius);
         cursor: pointer;
         font-size: 0.78rem;
         font-weight: 600;
@@ -129,6 +145,26 @@
 
   function FBTWidget() {
     let config = { ...defaultConfig };
+
+    function applyTheme(container) {
+      const root = container && container.querySelector ? container.querySelector('.fbt-widget') : null;
+      if (!root) return;
+      const theme = config.theme || {};
+      const setVar = (name, value) => {
+        if (value === undefined || value === null || value === '') return;
+        root.style.setProperty(name, String(value));
+      };
+      setVar('--fbt-border', theme.border);
+      setVar('--fbt-text', theme.text);
+      setVar('--fbt-muted', theme.muted);
+      setVar('--fbt-bg', theme.bg);
+      setVar('--fbt-btn-bg', theme.buttonBg);
+      setVar('--fbt-btn-hover', theme.buttonHover);
+      setVar('--fbt-btn-text', theme.buttonTextColor);
+      setVar('--fbt-radius', theme.radius);
+      setVar('--fbt-heading-size', theme.headingSize);
+      setVar('--fbt-card-name-size', theme.cardNameSize);
+    }
 
     function hydrateCatalogForRecommendations(recs) {
       const ids = recs
@@ -159,6 +195,7 @@
 
       if (!config.cartProductIds || config.cartProductIds.length === 0) {
         container.innerHTML = `<div class="fbt-widget"><div class="fbt-empty">${config.emptyMessage}</div></div>`;
+        applyTheme(container);
         return;
       }
 
@@ -172,6 +209,7 @@
           const recs = (data.recommendations || []).slice(0, config.maxRecommendations);
           if (recs.length === 0) {
             container.innerHTML = `<div class="fbt-widget"><div class="fbt-empty">No recommendations at this time.</div></div>`;
+            applyTheme(container);
             return;
           }
           return hydrateCatalogForRecommendations(recs).then(() => recs);
@@ -189,6 +227,7 @@
             </div>
           `;
           container.innerHTML = html;
+          applyTheme(container);
 
           container.querySelectorAll('.fbt-add-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {

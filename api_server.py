@@ -13,6 +13,7 @@ import json
 import os
 import threading
 import time
+from collections import defaultdict
 from urllib.parse import quote
 from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory, render_template_string, redirect
@@ -49,6 +50,26 @@ _CATALOG_CACHE = {
     "source": "none",
     "last_error": None,
 }
+PRIORITY_RANK = {"Primary": 0, "Secondary": 1, "Tertiary": 2}
+PER_PRODUCT_RECOMMENDATION_LIMIT = 3
+
+# Keep this lightweight/type-focused for runtime filtering.
+PRODUCT_TYPE_RULES = [
+    ("helmet_accessory", ["visor", "face-shield", "faceshield", "shield", "pinlock", "cheekpad", "cheek-pad", "cheek pad"]),
+    ("helmet", ["helmet"]),
+    ("jacket", ["jacket", "coat", "parka"]),
+    ("pants", ["pant", "trouser", "bibs"]),
+    ("gloves", ["glove", "gauntlet"]),
+    ("boots", ["boot", "shoe"]),
+]
+RUNTIME_COMPLEMENTARY_TYPES = {
+    "pants": ["jacket", "gloves", "boots", "helmet"],
+    "jacket": ["pants", "gloves", "boots", "helmet"],
+    "helmet": ["helmet_accessory", "gloves", "jacket", "boots"],
+    "gloves": ["jacket", "pants", "helmet", "boots"],
+    "boots": ["jacket", "pants", "gloves", "helmet"],
+}
+_GLOBAL_REC_BY_TYPE = defaultdict(list)
 
 
 def _get_bc_api_base_path():
@@ -149,6 +170,159 @@ def _parse_category_keywords(raw_value: str) -> list:
     return []
 
 
+def _normalize_slug_text(value: str) -> str:
+    return (value or "").strip().lower()
+
+
+def _detect_product_type(slug: str) -> str:
+    text = _normalize_slug_text(slug)
+    for type_name, keywords in PRODUCT_TYPE_RULES:
+        if any(keyword in text for keyword in keywords):
+            return type_name
+    return "unknown"
+
+
+def _extract_brand_token(slug: str) -> str:
+    tokens = [t for t in _normalize_slug_text(slug).split("-") if t]
+    for token in tokens:
+        if token.isdigit():
+            continue
+        if any(ch.isalpha() for ch in token):
+            return token
+    return ""
+
+
+def _sort_by_priority(recommendations: list) -> list:
+    return sorted(
+        recommendations,
+        key=lambda rec: PRIORITY_RANK.get((rec.get("priority") or "").strip(), 99),
+    )
+
+
+def _refresh_global_rec_pool(explicit_map: dict, category_rule_list: list) -> None:
+    pool = defaultdict(list)
+    seen_by_type = defaultdict(set)
+
+    def add_candidate(rec_id: str) -> None:
+        rec_id = (rec_id or "").strip()
+        if not rec_id:
+            return
+        rec_type = _detect_product_type(rec_id)
+        if rec_type == "unknown":
+            return
+        if rec_id in seen_by_type[rec_type]:
+            return
+        seen_by_type[rec_type].add(rec_id)
+        pool[rec_type].append(rec_id)
+
+    for recs in explicit_map.values():
+        for rec in recs:
+            add_candidate(rec.get("id"))
+    for _, recs in category_rule_list:
+        for rec in recs:
+            add_candidate(rec.get("id"))
+
+    _GLOBAL_REC_BY_TYPE.clear()
+    for rec_type, ids in pool.items():
+        _GLOBAL_REC_BY_TYPE[rec_type] = ids
+
+
+def _pick_global_candidate(source_type: str, source_brand: str, rec_type: str, selected_ids: set) -> str:
+    candidates = _GLOBAL_REC_BY_TYPE.get(rec_type, [])
+    for rid in candidates:
+        if rid in selected_ids:
+            continue
+        if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants"}:
+            rec_brand = _extract_brand_token(rid)
+            if source_brand and rec_brand and source_brand != rec_brand:
+                continue
+        return rid
+    return ""
+
+
+def _pick_global_candidate_any(source_type: str, source_brand: str, selected_ids: set, used_types: set) -> tuple:
+    for rec_type, candidates in _GLOBAL_REC_BY_TYPE.items():
+        if rec_type in used_types:
+            continue
+        for rid in candidates:
+            if rid in selected_ids:
+                continue
+            if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants"}:
+                rec_brand = _extract_brand_token(rid)
+                if source_brand and rec_brand and source_brand != rec_brand:
+                    continue
+            return rid, rec_type
+    return "", ""
+
+
+def _apply_recommendation_constraints(product_id: str, recommendations: list) -> list:
+    """
+    Runtime constraints:
+    - For jacket/pants sources, jacket/pants recommendations must match source brand.
+    - Return up to 3 recommendations with preference for distinct product types.
+    """
+    source_type = _detect_product_type(product_id)
+    source_brand = _extract_brand_token(product_id)
+    ordered = _sort_by_priority(recommendations)
+
+    filtered = []
+    for rec in ordered:
+        rid = (rec.get("id") or "").strip()
+        if not rid:
+            continue
+        rec_type = _detect_product_type(rid)
+
+        # Brand consistency for apparel-to-apparel recommendations.
+        if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants"}:
+            rec_brand = _extract_brand_token(rid)
+            if source_brand and rec_brand and source_brand != rec_brand:
+                continue
+        filtered.append(rec)
+
+    # Prefer 3 different recommendation types first.
+    selected = []
+    selected_ids = set()
+    seen_types = set()
+    for rec in filtered:
+        rid = rec.get("id")
+        if not rid or rid in selected_ids:
+            continue
+        rec_type = _detect_product_type(rid)
+        if rec_type in seen_types:
+            continue
+        selected.append(rec)
+        selected_ids.add(rid)
+        seen_types.add(rec_type)
+        if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
+            return selected
+
+    # If we don't have 3 types, supplement from global candidates.
+    if len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:
+        desired_types = RUNTIME_COMPLEMENTARY_TYPES.get(source_type, [])
+        for desired_type in desired_types:
+            if desired_type in seen_types:
+                continue
+            rid = _pick_global_candidate(source_type, source_brand, desired_type, selected_ids)
+            if not rid:
+                continue
+            selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})
+            selected_ids.add(rid)
+            seen_types.add(desired_type)
+            if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
+                break
+
+    # Try any other unseen type if desired map didn't fill all slots.
+    while len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:
+        rid, rec_type = _pick_global_candidate_any(source_type, source_brand, selected_ids, seen_types)
+        if not rid:
+            break
+        selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})
+        selected_ids.add(rid)
+        seen_types.add(rec_type)
+
+    return selected
+
+
 def _build_rules_from_reader(reader):
     explicit_map = {}
     category_rules = {}
@@ -179,14 +353,18 @@ def _load_rules_from_local_csv():
     if not CSV_PATH.exists():
         return {}, []
     with open(CSV_PATH, newline="", encoding="utf-8-sig") as f:
-        return _build_rules_from_reader(csv.DictReader(f))
+        explicit_map, category_rule_list = _build_rules_from_reader(csv.DictReader(f))
+        _refresh_global_rec_pool(explicit_map, category_rule_list)
+        return explicit_map, category_rule_list
 
 
 def _fetch_rules_from_remote_csv():
     response = requests.get(CSV_URL, timeout=CSV_TIMEOUT_SECONDS)
     response.raise_for_status()
     payload = response.text
-    return _build_rules_from_reader(csv.DictReader(io.StringIO(payload)))
+    explicit_map, category_rule_list = _build_rules_from_reader(csv.DictReader(io.StringIO(payload)))
+    _refresh_global_rec_pool(explicit_map, category_rule_list)
+    return explicit_map, category_rule_list
 
 
 def _load_rules_from_csv(force_refresh: bool = False):
@@ -242,13 +420,13 @@ def _load_rules_from_csv(force_refresh: bool = False):
 def get_recommendations(product_id: str, explicit_map: dict, category_rules: list) -> list:
     # 1) Exact product match from CSV
     if product_id in explicit_map:
-        return explicit_map[product_id]
+        return _apply_recommendation_constraints(product_id, explicit_map[product_id])
 
     # 2) Category fallback rows from CSV
     pid_lower = product_id.lower()
     for keywords, recs in category_rules:
         if any(kw in pid_lower for kw in keywords):
-            return recs
+            return _apply_recommendation_constraints(product_id, recs)
 
     # 3) No match
     return []
@@ -257,19 +435,21 @@ def get_recommendations(product_id: str, explicit_map: dict, category_rules: lis
 def get_recommendations_debug(product_id: str, explicit_map: dict, category_rules: list) -> dict:
     """Return recommendations plus match metadata for debugging."""
     if product_id in explicit_map:
+        constrained = _apply_recommendation_constraints(product_id, explicit_map[product_id])
         return {
             "match_type": "explicit",
             "matched_rule": product_id,
-            "recommendations": explicit_map[product_id],
+            "recommendations": constrained,
         }
 
     pid_lower = product_id.lower()
     for keywords, recs in category_rules:
         if any(kw in pid_lower for kw in keywords):
+            constrained = _apply_recommendation_constraints(product_id, recs)
             return {
                 "match_type": "category",
                 "matched_rule": keywords,
-                "recommendations": recs,
+                "recommendations": constrained,
             }
 
     return {
@@ -488,7 +668,6 @@ def get_frequently_bought_together():
         return jsonify({"recommendations": [], "message": "No products in cart"})
 
     explicit_map, category_rules = _load_rules_from_csv()
-    priority_rank = {"Primary": 0, "Secondary": 1, "Tertiary": 2}
     rec_info = {}  # id -> {count, label, priority}
     for cart_id in cart_product_ids:
         related_list = get_recommendations(cart_id, explicit_map, category_rules)
@@ -510,7 +689,7 @@ def get_frequently_bought_together():
                 incoming = r.get("priority", "") if isinstance(r, dict) else ""
                 if incoming and (
                     not current
-                    or priority_rank.get(incoming, 99) < priority_rank.get(current, 99)
+                    or PRIORITY_RANK.get(incoming, 99) < PRIORITY_RANK.get(current, 99)
                 ):
                     rec_info[rid]["priority"] = incoming
 
@@ -518,7 +697,7 @@ def get_frequently_bought_together():
         {"id": rid, "label": info["label"] or None, "priority": info.get("priority") or None}
         for rid, info in sorted(
             rec_info.items(),
-            key=lambda x: (-x[1]["count"], priority_rank.get(x[1].get("priority", ""), 99)),
+            key=lambda x: (-x[1]["count"], PRIORITY_RANK.get(x[1].get("priority", ""), 99)),
         )
     ]
 

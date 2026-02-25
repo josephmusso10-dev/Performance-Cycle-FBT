@@ -62,6 +62,18 @@ Optional (for authoritative product URLs/images/prices via BigCommerce Catalog A
 
 With this enabled, widget calls `GET /api/catalog?ids=...` and hydrates recommended products with real URLs before render.
 
+### Add-to-cart behavior on storefront
+
+Default widget behavior now attempts direct BigCommerce add-to-cart via storefront API:
+
+- `GET /api/storefront/carts` (find current cart)
+- `POST /api/storefront/carts` (create cart if needed)
+- `POST /api/storefront/carts/{cartId}/items` (add recommendation)
+
+If direct add fails (for example, product requires option selections), widget falls back to opening the product page URL so customer can choose options and add there.
+
+If you prefer link-only behavior, pass `enableBigCommerceAutoAdd: false` in widget init config.
+
 Health/debug:
 - `GET /api/health` shows active source (`remote`, `local`, or `local-fallback`) and last error if remote fetch failed.
 - `POST /api/reload` forces an immediate refresh attempt.

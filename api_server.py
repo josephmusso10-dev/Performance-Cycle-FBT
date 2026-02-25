@@ -8,16 +8,32 @@ Call /api/fbt?products=id1,id2 to get recommended accessories for cart items.
 """
 
 import csv
+import io
 import json
 import os
+import threading
+import time
 from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory, render_template_string, redirect
 from flask_cors import CORS
+import requests
 
 app = Flask(__name__)
 CORS(app)  # Allow frontend from any origin
 DATA_DIR = Path(__file__).parent
 CSV_PATH = Path(os.environ.get("RECOMMENDATIONS_CSV", str(DATA_DIR / "product_recommendations.csv")))
+CSV_URL = (os.environ.get("RECOMMENDATIONS_CSV_URL") or "").strip()
+CSV_REFRESH_SECONDS = int(os.environ.get("RECOMMENDATIONS_CSV_REFRESH_SECONDS", "30"))
+CSV_TIMEOUT_SECONDS = float(os.environ.get("RECOMMENDATIONS_CSV_TIMEOUT_SECONDS", "8"))
+
+_RULES_LOCK = threading.Lock()
+_RULES_CACHE = {
+    "explicit_map": {},
+    "category_rules": [],
+    "fetched_at": 0.0,
+    "source": "local",
+    "last_error": None,
+}
 
 
 def _parse_category_keywords(raw_value: str) -> list:
@@ -34,41 +50,94 @@ def _parse_category_keywords(raw_value: str) -> list:
     return []
 
 
-def _load_rules_from_csv():
+def _build_rules_from_reader(reader):
+    explicit_map = {}
+    category_rules = {}
+    for row in reader:
+        product_id = (row.get("Product ID") or "").strip()
+        rec_id = (row.get("Recommended Product ID") or "").strip()
+        label = (row.get("Label") or "").strip()
+        row_type = (row.get("Type") or "Explicit").strip().lower()
+
+        if not product_id or not rec_id:
+            continue
+
+        priority = (row.get("Priority") or "").strip()
+        rec = {"id": rec_id, "label": label, "priority": priority}
+        if row_type == "category":
+            keywords = tuple(_parse_category_keywords(product_id))
+            if not keywords:
+                continue
+            category_rules.setdefault(keywords, []).append(rec)
+        else:
+            explicit_map.setdefault(product_id, []).append(rec)
+
+    category_rule_list = [(list(keywords), recs) for keywords, recs in category_rules.items()]
+    return explicit_map, category_rule_list
+
+
+def _load_rules_from_local_csv():
+    if not CSV_PATH.exists():
+        return {}, []
+    with open(CSV_PATH, newline="", encoding="utf-8-sig") as f:
+        return _build_rules_from_reader(csv.DictReader(f))
+
+
+def _fetch_rules_from_remote_csv():
+    response = requests.get(CSV_URL, timeout=CSV_TIMEOUT_SECONDS)
+    response.raise_for_status()
+    payload = response.text
+    return _build_rules_from_reader(csv.DictReader(io.StringIO(payload)))
+
+
+def _load_rules_from_csv(force_refresh: bool = False):
     """
     Returns:
       explicit_map: {product_id: [{"id": "...", "label": "..."}]}
       category_rules: [(["keyword1", ...], [{"id": "...", "label": "..."}]), ...]
     """
-    explicit_map = {}
-    category_rules = {}
+    # Local-only mode: read local CSV every request (existing behavior).
+    if not CSV_URL:
+        explicit_map, category_rules = _load_rules_from_local_csv()
+        with _RULES_LOCK:
+            _RULES_CACHE["explicit_map"] = explicit_map
+            _RULES_CACHE["category_rules"] = category_rules
+            _RULES_CACHE["fetched_at"] = time.time()
+            _RULES_CACHE["source"] = "local"
+            _RULES_CACHE["last_error"] = None
+        return explicit_map, category_rules
 
-    if not CSV_PATH.exists():
-        return explicit_map, []
+    now = time.time()
+    with _RULES_LOCK:
+        is_fresh = (now - _RULES_CACHE["fetched_at"]) < CSV_REFRESH_SECONDS
+        has_cache = bool(_RULES_CACHE["explicit_map"] or _RULES_CACHE["category_rules"])
+        if not force_refresh and is_fresh and has_cache:
+            return _RULES_CACHE["explicit_map"], _RULES_CACHE["category_rules"]
 
-    with open(CSV_PATH, newline="", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            product_id = (row.get("Product ID") or "").strip()
-            rec_id = (row.get("Recommended Product ID") or "").strip()
-            label = (row.get("Label") or "").strip()
-            row_type = (row.get("Type") or "Explicit").strip().lower()
+    # Remote mode: refresh from URL with stale-cache fallback.
+    try:
+        explicit_map, category_rules = _fetch_rules_from_remote_csv()
+        with _RULES_LOCK:
+            _RULES_CACHE["explicit_map"] = explicit_map
+            _RULES_CACHE["category_rules"] = category_rules
+            _RULES_CACHE["fetched_at"] = now
+            _RULES_CACHE["source"] = "remote"
+            _RULES_CACHE["last_error"] = None
+        return explicit_map, category_rules
+    except Exception as exc:
+        with _RULES_LOCK:
+            _RULES_CACHE["last_error"] = str(exc)
+            if _RULES_CACHE["explicit_map"] or _RULES_CACHE["category_rules"]:
+                return _RULES_CACHE["explicit_map"], _RULES_CACHE["category_rules"]
 
-            if not product_id or not rec_id:
-                continue
-
-            priority = (row.get("Priority") or "").strip()
-            rec = {"id": rec_id, "label": label, "priority": priority}
-            if row_type == "category":
-                keywords = tuple(_parse_category_keywords(product_id))
-                if not keywords:
-                    continue
-                category_rules.setdefault(keywords, []).append(rec)
-            else:
-                explicit_map.setdefault(product_id, []).append(rec)
-
-    category_rule_list = [(list(keywords), recs) for keywords, recs in category_rules.items()]
-    return explicit_map, category_rule_list
+        # No remote cache yet; fall back to local file if present.
+        explicit_map, category_rules = _load_rules_from_local_csv()
+        with _RULES_LOCK:
+            _RULES_CACHE["explicit_map"] = explicit_map
+            _RULES_CACHE["category_rules"] = category_rules
+            _RULES_CACHE["fetched_at"] = time.time()
+            _RULES_CACHE["source"] = "local-fallback"
+        return explicit_map, category_rules
 
 
 def get_recommendations(product_id: str, explicit_map: dict, category_rules: list) -> list:
@@ -113,7 +182,18 @@ def get_recommendations_debug(product_id: str, explicit_map: dict, category_rule
 
 @app.route("/api/health")
 def health():
-    return jsonify({"status": "ok", "csv": str(CSV_PATH)})
+    with _RULES_LOCK:
+        return jsonify(
+            {
+                "status": "ok",
+                "csv_path": str(CSV_PATH),
+                "csv_url": CSV_URL or None,
+                "active_source": _RULES_CACHE.get("source"),
+                "last_refresh_epoch": _RULES_CACHE.get("fetched_at"),
+                "refresh_seconds": CSV_REFRESH_SECONDS,
+                "last_error": _RULES_CACHE.get("last_error"),
+            }
+        )
 
 
 @app.route("/api/reload", methods=["POST"])
@@ -122,12 +202,13 @@ def reload_rules():
     Reload/validate CSV rules.
     Since rules are read on each request, this endpoint validates and reports counts.
     """
-    explicit_map, category_rules = _load_rules_from_csv()
+    explicit_map, category_rules = _load_rules_from_csv(force_refresh=True)
     explicit_rows = sum(len(v) for v in explicit_map.values())
     category_rows = sum(len(v) for _, v in category_rules)
     return jsonify({
         "status": "ok",
-        "csv": str(CSV_PATH),
+        "csv_path": str(CSV_PATH),
+        "csv_url": CSV_URL or None,
         "explicit_products": len(explicit_map),
         "explicit_rows": explicit_rows,
         "category_rules": len(category_rules),

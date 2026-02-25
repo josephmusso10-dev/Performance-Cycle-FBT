@@ -23,7 +23,7 @@ Recommendations are read from:
 
 `product_recommendations.csv`
 
-Any edits saved to this CSV are picked up automatically by the API (no code edit required).
+In local dev, edits saved to this CSV are picked up automatically by the API (no code edit required).
 
 CSV columns:
 
@@ -31,6 +31,23 @@ CSV columns:
 - `Recommended Product ID`
 - `Label`
 - `Type` (`Explicit` or `Category`)
+
+### No-redeploy CSV updates (Vercel runtime URL mode)
+
+To update recommendations in production without redeploying every CSV edit:
+
+1. Host your CSV at a stable public URL (for example: Google Sheets published CSV, S3 object URL, or other hosted file URL).
+2. In Vercel Project Settings -> Environment Variables, set:
+   - `RECOMMENDATIONS_CSV_URL` = your public CSV URL
+   - `RECOMMENDATIONS_CSV_REFRESH_SECONDS` = `30` (or desired refresh cadence)
+   - `RECOMMENDATIONS_CSV_TIMEOUT_SECONDS` = `8`
+3. Redeploy once after adding env vars.
+
+After that, the API fetches the CSV from URL at runtime and refreshes on interval, so CSV edits at that URL show up without code deploys.
+
+Health/debug:
+- `GET /api/health` shows active source (`remote`, `local`, or `local-fallback`) and last error if remote fetch failed.
+- `POST /api/reload` forces an immediate refresh attempt.
 
 ### Validate recommendation quality
 

@@ -25,6 +25,7 @@
     containerId: 'fbt-widget',
     maxRecommendations: 6,
     title: 'Frequently Bought Together',
+    showAddButton: true,
     productUrlBase: '', // Optional, e.g. "https://performancecycle.com"
     productUrlPattern: '/products/{slug}/', // BigCommerce default product URL pattern
     theme: {
@@ -63,6 +64,10 @@
     const url = getProductUrl(id, catalog, cfg);
     const price = p.price ? `$${parseFloat(p.price).toFixed(2)}` : '';
 
+    const ctaHtml = cfg.showAddButton
+      ? `<button type="button" class="fbt-add-btn" data-id="${id}">Add to Cart</button>`
+      : `<a href="${url}" class="fbt-view-link">View Product</a>`;
+
     return `
       <div class="fbt-product" data-id="${id}">
         <a href="${url}" class="fbt-product-link">
@@ -73,7 +78,7 @@
             ${price ? `<span class="fbt-product-price">${price}</span>` : ''}
           </div>
         </a>
-        <button type="button" class="fbt-add-btn button button--small" data-id="${id}">Add to Cart</button>
+        ${ctaHtml}
       </div>
     `;
   }
@@ -135,6 +140,23 @@
         letter-spacing: 0.02em;
       }
       .fbt-add-btn:hover { background: var(--fbt-btn-hover); border-color: var(--fbt-btn-hover); }
+      .fbt-view-link {
+        display: block;
+        width: calc(100% - 1rem);
+        margin: 0.3rem 0.5rem 0.6rem;
+        padding: 0.5rem 0.65rem;
+        border: 1px solid var(--fbt-border);
+        border-radius: var(--fbt-radius);
+        text-align: center;
+        text-decoration: none;
+        color: var(--fbt-text);
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        background: #fff;
+      }
+      .fbt-view-link:hover { background: #f9fafb; }
       .fbt-empty, .fbt-loading { color: var(--fbt-muted); font-size: 0.92rem; }
       @media (max-width: 640px) {
         .fbt-products { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
@@ -229,17 +251,20 @@
           container.innerHTML = html;
           applyTheme(container);
 
-          container.querySelectorAll('.fbt-add-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-              e.preventDefault();
-              const id = btn.dataset.id;
-              if (typeof config.onAddToCart === 'function') {
-                config.onAddToCart(id);
-              } else {
-                window.location.href = getProductUrl(id, config.productCatalog, config);
-              }
+          if (config.showAddButton) {
+            container.querySelectorAll('.fbt-add-btn').forEach(btn => {
+              btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const id = btn.dataset.id;
+                if (typeof config.onAddToCart === 'function') {
+                  config.onAddToCart(id);
+                } else {
+                  window.location.href = getProductUrl(id, config.productCatalog, config);
+                }
+              });
             });
-          });
+          }
         })
         .catch(err => {
           container.innerHTML = `<div class="fbt-widget"><div class="fbt-empty">Could not load recommendations.</div></div>`;

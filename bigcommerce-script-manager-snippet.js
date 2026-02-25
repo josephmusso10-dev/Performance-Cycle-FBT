@@ -22,7 +22,14 @@
     var el = document.createElement("div");
     el.id = "fbt-widget";
 
-    // Best-effort placement across Stencil variants
+    // Place OUTSIDE action/form areas so checkout button behavior is untouched.
+    var cartActions = document.querySelector(".cart-actions, .cart-totals, .cart-checkout");
+    if (cartActions && cartActions.parentNode) {
+      cartActions.insertAdjacentElement("afterend", el);
+      return el;
+    }
+
+    // Best-effort fallback placement across Stencil variants
     var targets = [
       ".cart-content",
       ".page-content",
@@ -108,11 +115,9 @@
         cartProductIds: slugs,
         containerId: "fbt-widget",
         title: "Frequently Bought Together",
+        showAddButton: false, // non-invasive mode on cart page
         // If no catalog is passed, widget falls back to slug IDs.
-        onAddToCart: function (slug) {
-          // Default behavior: send user to product page.
-          window.location.href = "/" + slug + "/";
-        }
+        onAddToCart: null
       });
     });
   }

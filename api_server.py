@@ -218,6 +218,10 @@ def _refresh_global_rec_pool(explicit_map: dict, category_rule_list: list) -> No
     for recs in explicit_map.values():
         for rec in recs:
             add_candidate(rec.get("id"))
+    # Also include source product IDs as candidates so high-quality SKUs
+    # that are not currently used as recommendations remain available.
+    for source_id in explicit_map.keys():
+        add_candidate(source_id)
     for _, recs in category_rule_list:
         for rec in recs:
             add_candidate(rec.get("id"))
@@ -229,10 +233,27 @@ def _refresh_global_rec_pool(explicit_map: dict, category_rule_list: list) -> No
 
 def _pick_global_candidate(source_type: str, source_brand: str, rec_type: str, selected_ids: set) -> str:
     candidates = _GLOBAL_REC_BY_TYPE.get(rec_type, [])
+    # Special fallback preference:
+    # For jacket/pants -> gloves, if same-brand gloves are unavailable,
+    # prefer Alpinestars gloves.
+    if source_type in {"jacket", "pants"} and rec_type == "gloves":
+        for rid in candidates:
+            if rid in selected_ids:
+                continue
+            rec_brand = _extract_brand_token(rid)
+            if source_brand and rec_brand == source_brand:
+                return rid
+        for rid in candidates:
+            if rid in selected_ids:
+                continue
+            rec_brand = _extract_brand_token(rid)
+            if rec_brand == "alpinestars":
+                return rid
+
     for rid in candidates:
         if rid in selected_ids:
             continue
-        if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants"}:
+        if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants", "gloves"}:
             rec_brand = _extract_brand_token(rid)
             if source_brand and rec_brand and source_brand != rec_brand:
                 continue
@@ -247,7 +268,7 @@ def _pick_global_candidate_any(source_type: str, source_brand: str, selected_ids
         for rid in candidates:
             if rid in selected_ids:
                 continue
-            if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants"}:
+            if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants", "gloves"}:
                 rec_brand = _extract_brand_token(rid)
                 if source_brand and rec_brand and source_brand != rec_brand:
                     continue
@@ -273,7 +294,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         rec_type = _detect_product_type(rid)
 
         # Brand consistency for apparel-to-apparel recommendations.
-        if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants"}:
+        if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants", "gloves"}:
             rec_brand = _extract_brand_token(rid)
             if source_brand and rec_brand and source_brand != rec_brand:
                 continue

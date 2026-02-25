@@ -130,6 +130,29 @@
   function FBTWidget() {
     let config = { ...defaultConfig };
 
+    function hydrateCatalogForRecommendations(recs) {
+      const ids = recs
+        .map(r => (typeof r === 'object' && r.id ? r.id : r))
+        .filter(Boolean)
+        .filter(id => {
+          const p = config.productCatalog[id] || {};
+          return !p.url;
+        });
+      if (ids.length === 0) return Promise.resolve();
+
+      const uniqueIds = Array.from(new Set(ids));
+      const url = `${config.apiUrl.replace(/\/$/, '')}/api/catalog?ids=${encodeURIComponent(uniqueIds.join(','))}`;
+      return fetch(url)
+        .then(r => r.json())
+        .then(data => {
+          const items = (data && data.items) || {};
+          Object.keys(items).forEach(id => {
+            config.productCatalog[id] = { ...(config.productCatalog[id] || {}), ...items[id] };
+          });
+        })
+        .catch(() => {});
+    }
+
     function fetchRecommendations() {
       const container = document.getElementById(config.containerId);
       if (!container) return;
@@ -151,6 +174,10 @@
             container.innerHTML = `<div class="fbt-widget"><div class="fbt-empty">No recommendations at this time.</div></div>`;
             return;
           }
+          return hydrateCatalogForRecommendations(recs).then(() => recs);
+        })
+        .then(recs => {
+          if (!recs) return;
 
           const toRec = r => (typeof r === 'object' && r.id ? r : { id: r, label: '' });
           const html = `

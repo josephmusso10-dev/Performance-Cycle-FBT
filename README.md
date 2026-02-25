@@ -45,6 +45,23 @@ To update recommendations in production without redeploying every CSV edit:
 
 After that, the API fetches the CSV from URL at runtime and refreshes on interval, so CSV edits at that URL show up without code deploys.
 
+### Product URL resolution for recommended items
+
+To ensure recommendation cards link to real product pages without theme-side catalog wiring:
+
+Set these env vars in Vercel:
+
+- `STOREFRONT_BASE_URL` = your storefront domain (example: `https://performancecycle.com`)
+- `STOREFRONT_PRODUCT_PATH_PATTERN` = product URL pattern (default fallback is `/{slug}/`; common alternative `/products/{slug}/`)
+
+Optional (for authoritative product URLs/images/prices via BigCommerce Catalog API):
+
+- `BC_ACCESS_TOKEN`
+- `BC_API_PATH` (or `BC_STORE_HASH` + `BC_API_BASE`)
+- `CATALOG_REFRESH_SECONDS` (default `1800`)
+
+With this enabled, widget calls `GET /api/catalog?ids=...` and hydrates recommended products with real URLs before render.
+
 Health/debug:
 - `GET /api/health` shows active source (`remote`, `local`, or `local-fallback`) and last error if remote fetch failed.
 - `POST /api/reload` forces an immediate refresh attempt.

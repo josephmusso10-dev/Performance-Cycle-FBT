@@ -13,6 +13,7 @@ import json
 import os
 import threading
 import time
+from urllib.parse import quote
 from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory, render_template_string, redirect
 from flask_cors import CORS
@@ -25,6 +26,14 @@ CSV_PATH = Path(os.environ.get("RECOMMENDATIONS_CSV", str(DATA_DIR / "product_re
 CSV_URL = (os.environ.get("RECOMMENDATIONS_CSV_URL") or "").strip()
 CSV_REFRESH_SECONDS = int(os.environ.get("RECOMMENDATIONS_CSV_REFRESH_SECONDS", "30"))
 CSV_TIMEOUT_SECONDS = float(os.environ.get("RECOMMENDATIONS_CSV_TIMEOUT_SECONDS", "8"))
+STOREFRONT_BASE_URL = (os.environ.get("STOREFRONT_BASE_URL") or "").strip().rstrip("/")
+STOREFRONT_PRODUCT_PATH_PATTERN = (os.environ.get("STOREFRONT_PRODUCT_PATH_PATTERN") or "/{slug}/").strip()
+
+BC_ACCESS_TOKEN = (os.environ.get("BC_ACCESS_TOKEN") or "").strip()
+BC_API_PATH = (os.environ.get("BC_API_PATH") or "").strip().rstrip("/")
+BC_STORE_HASH = (os.environ.get("BC_STORE_HASH") or "").strip()
+BC_API_BASE = (os.environ.get("BC_API_BASE") or "https://api.bigcommerce.com").strip().rstrip("/")
+CATALOG_REFRESH_SECONDS = int(os.environ.get("CATALOG_REFRESH_SECONDS", "1800"))
 
 _RULES_LOCK = threading.Lock()
 _RULES_CACHE = {
@@ -34,6 +43,96 @@ _RULES_CACHE = {
     "source": "local",
     "last_error": None,
 }
+_CATALOG_CACHE = {
+    "slug_map": {},
+    "fetched_at": 0.0,
+    "source": "none",
+    "last_error": None,
+}
+
+
+def _get_bc_api_base_path():
+    if BC_API_PATH:
+        return BC_API_PATH
+    if BC_STORE_HASH:
+        return f"{BC_API_BASE}/stores/{BC_STORE_HASH}/v3"
+    return ""
+
+
+def _fetch_bigcommerce_catalog_map():
+    base_path = _get_bc_api_base_path()
+    if not (base_path and BC_ACCESS_TOKEN):
+        return {}
+
+    session = requests.Session()
+    session.headers.update({
+        "X-Auth-Token": BC_ACCESS_TOKEN,
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    })
+
+    out = {}
+    page = 1
+    while True:
+        resp = session.get(
+            f"{base_path}/catalog/products",
+            params={"page": page, "limit": 250, "include": "primary_image", "is_visible": True},
+            timeout=CSV_TIMEOUT_SECONDS,
+        )
+        resp.raise_for_status()
+        payload = resp.json()
+        rows = payload.get("data", [])
+        for row in rows:
+            custom_url = (row.get("custom_url") or {}).get("url") or ""
+            slug = custom_url.strip("/")
+            if not slug:
+                continue
+            out[slug] = {
+                "id": row.get("id"),
+                "name": row.get("name") or slug,
+                "url": custom_url,
+                "price": row.get("price"),
+                "image": ((row.get("primary_image") or {}).get("url_standard") or ""),
+            }
+        meta = payload.get("meta", {}).get("pagination", {})
+        total_pages = meta.get("total_pages", page)
+        if page >= total_pages:
+            break
+        page += 1
+    return out
+
+
+def _get_catalog_map(force_refresh: bool = False):
+    now = time.time()
+    with _RULES_LOCK:
+        has_cache = bool(_CATALOG_CACHE["slug_map"])
+        is_fresh = (now - _CATALOG_CACHE["fetched_at"]) < CATALOG_REFRESH_SECONDS
+        if not force_refresh and has_cache and is_fresh:
+            return _CATALOG_CACHE["slug_map"]
+
+    try:
+        catalog_map = _fetch_bigcommerce_catalog_map()
+        with _RULES_LOCK:
+            if catalog_map:
+                _CATALOG_CACHE["slug_map"] = catalog_map
+                _CATALOG_CACHE["fetched_at"] = now
+                _CATALOG_CACHE["source"] = "bigcommerce"
+                _CATALOG_CACHE["last_error"] = None
+        return _CATALOG_CACHE["slug_map"]
+    except Exception as exc:
+        with _RULES_LOCK:
+            _CATALOG_CACHE["last_error"] = str(exc)
+        return _CATALOG_CACHE["slug_map"]
+
+
+def _build_storefront_url(slug: str) -> str:
+    encoded_slug = quote(slug, safe="")
+    path = STOREFRONT_PRODUCT_PATH_PATTERN.replace("{slug}", encoded_slug)
+    if not path.startswith("/"):
+        path = f"/{path}"
+    if STOREFRONT_BASE_URL:
+        return f"{STOREFRONT_BASE_URL}{path}"
+    return path
 
 
 def _parse_category_keywords(raw_value: str) -> list:
@@ -192,6 +291,8 @@ def health():
                 "last_refresh_epoch": _RULES_CACHE.get("fetched_at"),
                 "refresh_seconds": CSV_REFRESH_SECONDS,
                 "last_error": _RULES_CACHE.get("last_error"),
+                "catalog_source": _CATALOG_CACHE.get("source"),
+                "catalog_last_error": _CATALOG_CACHE.get("last_error"),
             }
         )
 
@@ -214,6 +315,31 @@ def reload_rules():
         "category_rules": len(category_rules),
         "category_rows": category_rows,
     })
+
+
+@app.route("/api/catalog")
+def get_catalog():
+    """
+    GET /api/catalog?ids=id1,id2
+    Returns basic catalog metadata (name/url/image/price) for recommendation slugs.
+    """
+    ids_param = request.args.get("ids", "")
+    ids = [p.strip() for p in ids_param.split(",") if p.strip()]
+    if not ids:
+        return jsonify({"items": {}})
+
+    catalog_map = _get_catalog_map()
+    items = {}
+    for slug in ids:
+        row = dict(catalog_map.get(slug, {}))
+        if not row:
+            row = {"name": slug}
+        if not row.get("url"):
+            row["url"] = _build_storefront_url(slug)
+        elif row.get("url", "").startswith("/") and STOREFRONT_BASE_URL:
+            row["url"] = f"{STOREFRONT_BASE_URL}{row['url']}"
+        items[slug] = row
+    return jsonify({"items": items})
 
 
 @app.route("/api/debug/product")

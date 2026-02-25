@@ -25,25 +25,30 @@
     containerId: 'fbt-widget',
     maxRecommendations: 6,
     title: 'Frequently Bought Together',
+    productUrlBase: '', // Optional, e.g. "https://performancecycle.com"
+    productUrlPattern: '/products/{slug}/', // BigCommerce default product URL pattern
     onAddToCart: null,  // Optional: (productId) => {} - called when user clicks add
     emptyMessage: 'Add items to your cart to see recommendations.',
     loadingMessage: 'Loading recommendations...',
   };
 
-  function getProductUrl(id, catalog) {
+  function getProductUrl(id, catalog, cfg) {
     const p = catalog[id] || {};
     if (p.url && typeof p.url === 'string' && p.url.trim()) return p.url;
     // Fallback assumes recommendation IDs are storefront slugs.
-    return `/${id}/`;
+    const slug = encodeURIComponent(id);
+    const pattern = ((cfg && cfg.productUrlPattern) || '/products/{slug}/').replace('{slug}', slug);
+    const base = (((cfg && cfg.productUrlBase) || '').trim()).replace(/\/$/, '');
+    return `${base}${pattern.startsWith('/') ? pattern : `/${pattern}`}`;
   }
 
-  function renderProduct(rec, catalog) {
+  function renderProduct(rec, catalog, cfg) {
     const id = rec.id || rec;
     const label = rec.label || '';
     const p = catalog[id] || {};
     const name = p.name || id;
     const image = p.image || '';
-    const url = getProductUrl(id, catalog);
+    const url = getProductUrl(id, catalog, cfg);
     const price = p.price ? `$${parseFloat(p.price).toFixed(2)}` : '';
 
     return `
@@ -152,7 +157,7 @@
             <div class="fbt-widget">
               <h3 class="fbt-title">${config.title}</h3>
               <div class="fbt-products">
-                ${recs.map(r => renderProduct(toRec(r), config.productCatalog)).join('')}
+                ${recs.map(r => renderProduct(toRec(r), config.productCatalog, config)).join('')}
               </div>
             </div>
           `;
@@ -165,7 +170,7 @@
               if (typeof config.onAddToCart === 'function') {
                 config.onAddToCart(id);
               } else {
-                window.location.href = getProductUrl(id, config.productCatalog);
+                window.location.href = getProductUrl(id, config.productCatalog, config);
               }
             });
           });

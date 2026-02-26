@@ -666,7 +666,8 @@ def simulate():
         productCatalog: catalog,
         containerId: 'fbt-widget',
         title: 'Frequently Bought Together',
-        onAddToCart: addToCart
+        showAddButton: false,
+        onAddToCart: null
       });
     </script>
   </body>

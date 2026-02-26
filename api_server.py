@@ -625,7 +625,6 @@ def simulate():
       .panel { background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
       .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
       .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; background: #fff; }
-      .card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; margin-bottom: 8px; background: #f3f4f6; }
       .card h4 { margin: 0 0 8px; font-size: 15px; }
       .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
       button { background: #111; color: #fff; border: none; padding: 8px 10px; border-radius: 6px; cursor: pointer; }
@@ -660,7 +659,6 @@ def simulate():
         const el = document.getElementById('catalog');
         el.innerHTML = Object.entries(catalog).map(([id, p]) => `
           <div class="card">
-            ${p.image ? `<img src="${p.image}" alt="${p.name}">` : ''}
             <h4>${p.name}</h4>
             <div class="row"><span>$${Number(p.price || 0).toFixed(2)}</span><button data-id="${id}">Add</button></div>
             <div class="muted" style="margin-top:6px;">${id}</div>

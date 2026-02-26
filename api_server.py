@@ -577,18 +577,41 @@ def root():
 @app.route("/simulate")
 def simulate():
     """Clickable storefront simulation page."""
-    sample_catalog = {
-        "agv-pista-gp-rr-mono-carbon-helmet": {"name": "AGV Pista GP RR Mono Carbon Helmet", "price": 1679.99},
-        "klim-badlands-pro-jacket": {"name": "Klim Badlands Pro Jacket", "price": 1199.99},
-        "motorex-gear-oil-10w30": {"name": "Motorex Gear Oil 10W30", "price": 20.99},
-        "twin-air-air-filter-for-2024-kawasaki-kx450": {"name": "Twin Air Filter 2024 KX450", "price": 38.95},
-        "sena-30k-hd-communication-system-single-unit": {"name": "Sena 30K HD Communication", "price": 299.00},
-        "kriega-r20-backpack": {"name": "Kriega R20 Backpack", "price": 179.99},
-        "dunlop-sportmax-q5-sportbike-tires": {"name": "Dunlop Sportmax Q5 Tires", "price": 354.99},
-        "ebc-fa103-brake-pad": {"name": "EBC FA103 Brake Pad", "price": 40.95},
-        "ogio-head-case-helmet-bag": {"name": "OGIO Head Case Helmet Bag", "price": 89.99},
-        "pinlock-earplug-set-w-case": {"name": "Pinlock Earplug Set", "price": 24.99},
-    }
+    # Prefer live BigCommerce catalog so simulator mirrors storefront data/images.
+    catalog_map = _get_catalog_map()
+    sample_catalog = {}
+    if catalog_map:
+        # Pick a broad sample: start with image-backed products sorted by price desc.
+        rows = []
+        for slug, item in catalog_map.items():
+            price = float(item.get("price") or 0.0)
+            rows.append((slug, price, item))
+        rows.sort(key=lambda x: x[1], reverse=True)
+        # Keep first N with images first, then fill with any.
+        with_image = [r for r in rows if (r[2].get("image") or "").strip()]
+        without_image = [r for r in rows if not (r[2].get("image") or "").strip()]
+        picked = (with_image[:18] + without_image[:6])[:24]
+        for slug, _, item in picked:
+            sample_catalog[slug] = {
+                "name": item.get("name") or slug,
+                "price": item.get("price"),
+                "url": item.get("url") or _build_storefront_url(slug),
+                "image": item.get("image") or "",
+            }
+    else:
+        # Local fallback if catalog auth is missing.
+        sample_catalog = {
+            "agv-pista-gp-rr-mono-carbon-helmet": {"name": "AGV Pista GP RR Mono Carbon Helmet", "price": 1679.99},
+            "klim-badlands-pro-jacket": {"name": "Klim Badlands Pro Jacket", "price": 1199.99},
+            "motorex-gear-oil-10w30": {"name": "Motorex Gear Oil 10W30", "price": 20.99},
+            "twin-air-air-filter-for-2024-kawasaki-kx450": {"name": "Twin Air Filter 2024 KX450", "price": 38.95},
+            "sena-30k-hd-communication-system-single-unit": {"name": "Sena 30K HD Communication", "price": 299.00},
+            "kriega-r20-backpack": {"name": "Kriega R20 Backpack", "price": 179.99},
+            "dunlop-sportmax-q5-sportbike-tires": {"name": "Dunlop Sportmax Q5 Tires", "price": 354.99},
+            "ebc-fa103-brake-pad": {"name": "EBC FA103 Brake Pad", "price": 40.95},
+            "ogio-head-case-helmet-bag": {"name": "OGIO Head Case Helmet Bag", "price": 89.99},
+            "pinlock-earplug-set-w-case": {"name": "Pinlock Earplug Set", "price": 24.99},
+        }
     html = """
 <!doctype html>
 <html>
@@ -602,6 +625,7 @@ def simulate():
       .panel { background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
       .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
       .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; background: #fff; }
+      .card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; margin-bottom: 8px; background: #f3f4f6; }
       .card h4 { margin: 0 0 8px; font-size: 15px; }
       .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
       button { background: #111; color: #fff; border: none; padding: 8px 10px; border-radius: 6px; cursor: pointer; }
@@ -636,6 +660,7 @@ def simulate():
         const el = document.getElementById('catalog');
         el.innerHTML = Object.entries(catalog).map(([id, p]) => `
           <div class="card">
+            ${p.image ? `<img src="${p.image}" alt="${p.name}">` : ''}
             <h4>${p.name}</h4>
             <div class="row"><span>$${Number(p.price || 0).toFixed(2)}</span><button data-id="${id}">Add</button></div>
             <div class="muted" style="margin-top:6px;">${id}</div>

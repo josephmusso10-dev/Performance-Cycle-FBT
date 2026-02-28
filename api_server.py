@@ -156,6 +156,44 @@ def _build_storefront_url(slug: str) -> str:
     return path
 
 
+def _candidate_catalog_keys(raw_id: str) -> list:
+    """
+    Build multiple key forms to maximize catalog lookup hits.
+    Handles IDs like:
+    - "agv-pista-gp-rr-mono-carbon-helmet"
+    - "/agv-pista-gp-rr-mono-carbon-helmet/"
+    - "products/agv-pista-gp-rr-mono-carbon-helmet"
+    - "/products/agv-pista-gp-rr-mono-carbon-helmet/"
+    """
+    val = (raw_id or "").strip()
+    if not val:
+        return []
+    candidates = []
+
+    def add(v):
+        v = (v or "").strip()
+        if v and v not in candidates:
+            candidates.append(v)
+
+    add(val)
+    add(val.strip("/"))
+
+    stripped = val.strip("/")
+    add(stripped)
+
+    if stripped.lower().startswith("products/"):
+        add(stripped[len("products/"):])
+    if "/products/" in stripped.lower():
+        idx = stripped.lower().find("/products/")
+        add(stripped[idx + len("/products/"):])
+
+    # Last path segment fallback
+    if "/" in stripped:
+        add(stripped.split("/")[-1])
+
+    return candidates
+
+
 def _parse_category_keywords(raw_value: str) -> list:
     """
     Parse values like:
@@ -532,7 +570,11 @@ def get_catalog():
     catalog_map = _get_catalog_map()
     items = {}
     for slug in ids:
-        row = dict(catalog_map.get(slug, {}))
+        row = {}
+        for key in _candidate_catalog_keys(slug):
+            if key in catalog_map:
+                row = dict(catalog_map.get(key, {}))
+                break
         if not row:
             row = {"name": slug}
         if not row.get("url"):

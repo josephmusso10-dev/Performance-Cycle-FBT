@@ -246,6 +246,17 @@ def detect_riding_type(product: Product) -> str:
     return "unknown"
 
 
+def detect_riding_type_from_text(value: str) -> str:
+    hay = normalize_text(value or "")
+    dirt_hit = any(kw in hay for kw in RIDING_TYPE_RULES["dirt"])
+    street_hit = any(kw in hay for kw in RIDING_TYPE_RULES["street"])
+    if dirt_hit and not street_hit:
+        return "dirt"
+    if street_hit and not dirt_hit:
+        return "street"
+    return "unknown"
+
+
 def brand_token(product: Product) -> str:
     toks = tokenize(product.slug)
     return toks[0] if toks else ""
@@ -546,12 +557,17 @@ def main():
     for row in existing_category_rows:
         source_type = detect_type_from_text(row.get("Product ID", ""))
         rec_type = detect_type_from_text(row.get("Recommended Product ID", ""))
+        source_riding = (row.get("Source Riding Type") or "").strip().lower() or detect_riding_type_from_text(row.get("Product ID", ""))
+        rec_riding = (row.get("Recommended Riding Type") or "").strip().lower() or detect_riding_type_from_text(row.get("Recommended Product ID", ""))
         # Enforce core business safety on preserved category rules.
         if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:
             continue
         if source_type in GEAR_TYPES and rec_type in PARTS_TYPES:
             continue
         if source_type == "backpack" and rec_type not in BACKPACK_ALLOWED_TYPES:
+            continue
+        # Enforce same riding-type rule when source can be classified.
+        if source_riding in {"street", "dirt"} and rec_riding != source_riding:
             continue
         out_rows.append({
             "Product ID": row.get("Product ID", ""),

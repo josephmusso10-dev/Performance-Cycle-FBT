@@ -101,6 +101,18 @@ GEAR_TYPES = {
 }
 PARTS_TYPES = {"air_filter", "oil", "tire", "brake", "chain", "parts"}
 BACKPACK_ALLOWED_TYPES = {"hydration", "luggage"}
+RIDING_TYPE_RULES = {
+    "dirt": [
+        "dirt", "mx", "motocross", "offroad", "off-road", "enduro",
+        "trail", "atv", "cross", "dualsport", "dual-sport", "adventure", "adv",
+        "sx", "fx", "kawasaki kx", "yz", "crf", "rmz", "ktm exc", "husqvarna fe",
+    ],
+    "street": [
+        "street", "sportbike", "supersport", "touring", "commuter",
+        "cruiser", "harley", "goldwing", "roadsmart", "pilot road",
+        "rpha", "x-15", "rf-1400", "neotec", "pista", "corsair",
+    ],
+}
 _GLOBAL_REC_BY_TYPE = defaultdict(list)
 
 
@@ -262,6 +274,17 @@ def _extract_brand_token(slug: str) -> str:
     return ""
 
 
+def _detect_riding_type(slug: str) -> str:
+    text = _normalize_slug_text(slug).replace("-", " ")
+    dirt_hit = any(keyword in text for keyword in RIDING_TYPE_RULES["dirt"])
+    street_hit = any(keyword in text for keyword in RIDING_TYPE_RULES["street"])
+    if dirt_hit and not street_hit:
+        return "dirt"
+    if street_hit and not dirt_hit:
+        return "street"
+    return "unknown"
+
+
 def _sort_by_priority(recommendations: list) -> list:
     return sorted(
         recommendations,
@@ -301,7 +324,7 @@ def _refresh_global_rec_pool(explicit_map: dict, category_rule_list: list) -> No
         _GLOBAL_REC_BY_TYPE[rec_type] = ids
 
 
-def _pick_global_candidate(source_type: str, source_brand: str, rec_type: str, selected_ids: set) -> str:
+def _pick_global_candidate(source_type: str, source_brand: str, source_riding: str, rec_type: str, selected_ids: set) -> str:
     candidates = _GLOBAL_REC_BY_TYPE.get(rec_type, [])
     # Special fallback preference:
     # For jacket/pants -> gloves, if same-brand gloves are unavailable,
@@ -323,6 +346,8 @@ def _pick_global_candidate(source_type: str, source_brand: str, rec_type: str, s
     for rid in candidates:
         if rid in selected_ids:
             continue
+        if source_riding in {"street", "dirt"} and _detect_riding_type(rid) != source_riding:
+            continue
         if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:
             continue
         if source_type in GEAR_TYPES and rec_type in PARTS_TYPES:
@@ -339,12 +364,14 @@ def _pick_global_candidate(source_type: str, source_brand: str, rec_type: str, s
     return ""
 
 
-def _pick_global_candidate_any(source_type: str, source_brand: str, selected_ids: set, used_types: set) -> tuple:
+def _pick_global_candidate_any(source_type: str, source_brand: str, source_riding: str, selected_ids: set, used_types: set) -> tuple:
     for rec_type, candidates in _GLOBAL_REC_BY_TYPE.items():
         if rec_type in used_types:
             continue
         for rid in candidates:
             if rid in selected_ids:
+                continue
+            if source_riding in {"street", "dirt"} and _detect_riding_type(rid) != source_riding:
                 continue
             if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:
                 continue
@@ -370,6 +397,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     """
     source_type = _detect_product_type(product_id)
     source_brand = _extract_brand_token(product_id)
+    source_riding = _detect_riding_type(product_id)
     ordered = _sort_by_priority(recommendations)
 
     filtered = []
@@ -378,6 +406,9 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         if not rid:
             continue
         rec_type = _detect_product_type(rid)
+        rec_riding = _detect_riding_type(rid)
+        if source_riding in {"street", "dirt"} and rec_riding != source_riding:
+            continue
 
         # Hard rule: parts/consumables should not recommend riding gear.
         if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:
@@ -421,7 +452,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         for desired_type in desired_types:
             if desired_type in seen_types:
                 continue
-            rid = _pick_global_candidate(source_type, source_brand, desired_type, selected_ids)
+            rid = _pick_global_candidate(source_type, source_brand, source_riding, desired_type, selected_ids)
             if not rid:
                 continue
             selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})
@@ -432,7 +463,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
 
     # Try any other unseen type if desired map didn't fill all slots.
     while len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:
-        rid, rec_type = _pick_global_candidate_any(source_type, source_brand, selected_ids, seen_types)
+        rid, rec_type = _pick_global_candidate_any(source_type, source_brand, source_riding, selected_ids, seen_types)
         if not rid:
             break
         selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})

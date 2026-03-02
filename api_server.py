@@ -65,8 +65,8 @@ PRODUCT_TYPE_RULES = [
     ("pants", ["pant", "trouser", "bibs"]),
     ("gloves", ["glove", "gauntlet"]),
     ("boots", ["boot", "shoe"]),
-    ("hydration", ["hydration", "hydra", "reservoir", "water-pack", "water pack", "bladder"]),
-    ("luggage", ["tail-bag", "tail bag", "tank-bag", "tank bag", "drypack", "duffel", "fender-bag", "fender pack", "tool-pack", "tool pack", "toolbag"]),
+    ("hydration", ["hydration", "hydradri", "hydralite", "reservoir", "water-pack", "water pack", "bladder"]),
+    ("luggage", ["tail-bag", "tail bag", "tank-bag", "tank bag", "drypack", "duffel", "fender-bag", "fender pack", "tool-pack", "tool pack", "toolbag", "fanny", "waist pack", "hip pack", "sling"]),
     ("backpack", ["backpack", "luggage"]),
     ("communication", ["communication", "intercom", "bluetooth", "headset", "sena", "cardo"]),
     ("protection", ["protector", "armor", "armour", "chest", "back protector"]),
@@ -89,7 +89,7 @@ RUNTIME_COMPLEMENTARY_TYPES = {
     "brake": ["tire", "chain", "oil", "parts", "air_filter"],
     "chain": ["oil", "brake", "tire", "parts", "air_filter"],
     "parts": ["air_filter", "oil", "chain", "brake", "tire"],
-    "backpack": ["hydration", "luggage", "backpack"],
+    "backpack": ["hydration", "luggage"],
     "hydration": ["backpack", "luggage"],
     "luggage": ["backpack", "hydration"],
     "communication": ["helmet", "gloves"],
@@ -100,7 +100,7 @@ GEAR_TYPES = {
     "backpack", "communication", "protection",
 }
 PARTS_TYPES = {"air_filter", "oil", "tire", "brake", "chain", "parts"}
-BACKPACK_ALLOWED_TYPES = {"hydration", "luggage", "backpack"}
+BACKPACK_ALLOWED_TYPES = {"hydration", "luggage"}
 _GLOBAL_REC_BY_TYPE = defaultdict(list)
 
 
@@ -329,6 +329,8 @@ def _pick_global_candidate(source_type: str, source_brand: str, rec_type: str, s
             continue
         if source_type == "backpack" and rec_type not in BACKPACK_ALLOWED_TYPES:
             continue
+        if source_type == "backpack" and rec_type == "backpack":
+            continue
         if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants", "gloves"}:
             rec_brand = _extract_brand_token(rid)
             if source_brand and rec_brand and source_brand != rec_brand:
@@ -349,6 +351,8 @@ def _pick_global_candidate_any(source_type: str, source_brand: str, selected_ids
             if source_type in GEAR_TYPES and rec_type in PARTS_TYPES:
                 continue
             if source_type == "backpack" and rec_type not in BACKPACK_ALLOWED_TYPES:
+                continue
+            if source_type == "backpack" and rec_type == "backpack":
                 continue
             if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants", "gloves"}:
                 rec_brand = _extract_brand_token(rid)
@@ -383,6 +387,8 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
             continue
         # Backpack should recommend backpack-adjacent items only.
         if source_type == "backpack" and rec_type not in BACKPACK_ALLOWED_TYPES:
+            continue
+        if source_type == "backpack" and rec_type == "backpack":
             continue
 
         # Brand consistency for apparel-to-apparel recommendations.

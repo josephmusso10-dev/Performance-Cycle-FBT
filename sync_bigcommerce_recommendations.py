@@ -38,8 +38,8 @@ TYPE_RULES = [
     ("pants", ["pant", "trouser", "bibs"]),
     ("gloves", ["glove", "gauntlet"]),
     ("boots", ["boot", "shoe"]),
-    ("hydration", ["hydration", "hydra", "reservoir", "water-pack", "water pack", "bladder"]),
-    ("luggage", ["tail-bag", "tail bag", "tank-bag", "tank bag", "drypack", "duffel", "fender-bag", "fender pack", "tool-pack", "tool pack", "toolbag"]),
+    ("hydration", ["hydration", "hydradri", "hydralite", "reservoir", "water-pack", "water pack", "bladder"]),
+    ("luggage", ["tail-bag", "tail bag", "tank-bag", "tank bag", "drypack", "duffel", "fender-bag", "fender pack", "tool-pack", "tool pack", "toolbag", "fanny", "waist pack", "hip pack", "sling"]),
     ("backpack", ["backpack", "bag", "luggage"]),
     ("communication", ["communication", "intercom", "bluetooth", "headset", "sena", "cardo", "schuberth sc2"]),
     ("tire", ["tire", "tyre", "wheel"]),
@@ -66,7 +66,7 @@ COMPLEMENTARY_TYPES = {
     "chain": ["oil", "brake", "air_filter"],
     "brake": ["tire", "chain", "oil"],
     "parts": ["air_filter", "oil", "chain", "brake", "tire"],
-    "backpack": ["hydration", "luggage", "backpack"],
+    "backpack": ["hydration", "luggage"],
     "hydration": ["backpack", "luggage"],
     "luggage": ["backpack", "hydration"],
     "protection": ["jacket", "pants", "gloves", "boots"],
@@ -74,7 +74,7 @@ COMPLEMENTARY_TYPES = {
 
 GEAR_TYPES = {"helmet", "helmet_accessory", "jacket", "pants", "gloves", "boots", "backpack", "communication", "protection"}
 PARTS_TYPES = {"air_filter", "oil", "tire", "brake", "chain", "parts"}
-BACKPACK_ALLOWED_TYPES = {"hydration", "luggage", "backpack"}
+BACKPACK_ALLOWED_TYPES = {"hydration", "luggage"}
 
 
 @dataclass
@@ -316,6 +316,9 @@ def choose_three(
             return False
         # Backpack should recommend backpack-adjacent items only.
         if source_type == "backpack" and rec_type not in BACKPACK_ALLOWED_TYPES:
+            return False
+        # Backpack should never suggest buying another backpack.
+        if source_type == "backpack" and rec_type == "backpack":
             return False
         return True
 

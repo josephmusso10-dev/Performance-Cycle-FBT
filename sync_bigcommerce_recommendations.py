@@ -38,6 +38,8 @@ TYPE_RULES = [
     ("pants", ["pant", "trouser", "bibs"]),
     ("gloves", ["glove", "gauntlet"]),
     ("boots", ["boot", "shoe"]),
+    ("hydration", ["hydration", "hydra", "reservoir", "water-pack", "water pack", "bladder"]),
+    ("luggage", ["tail-bag", "tail bag", "tank-bag", "tank bag", "drypack", "duffel", "fender-bag", "fender pack", "tool-pack", "tool pack", "toolbag"]),
     ("backpack", ["backpack", "bag", "luggage"]),
     ("communication", ["communication", "intercom", "bluetooth", "headset", "sena", "cardo", "schuberth sc2"]),
     ("tire", ["tire", "tyre", "wheel"]),
@@ -64,13 +66,15 @@ COMPLEMENTARY_TYPES = {
     "chain": ["oil", "brake", "air_filter"],
     "brake": ["tire", "chain", "oil"],
     "parts": ["air_filter", "oil", "chain", "brake", "tire"],
-    "backpack": ["communication", "protection", "gloves"],
+    "backpack": ["hydration", "luggage", "backpack"],
+    "hydration": ["backpack", "luggage"],
+    "luggage": ["backpack", "hydration"],
     "protection": ["jacket", "pants", "gloves", "boots"],
 }
 
 GEAR_TYPES = {"helmet", "helmet_accessory", "jacket", "pants", "gloves", "boots", "backpack", "communication", "protection"}
 PARTS_TYPES = {"air_filter", "oil", "tire", "brake", "chain", "parts"}
-BACKPACK_ALLOWED_TYPES = {"communication", "protection", "gloves", "backpack"}
+BACKPACK_ALLOWED_TYPES = {"hydration", "luggage", "backpack"}
 
 
 @dataclass
@@ -213,6 +217,14 @@ def detect_product_type(product: Product) -> str:
             return ptype
     for ptype, kws in TYPE_RULES:
         if any(kw in hay_categories for kw in kws):
+            return ptype
+    return "other"
+
+
+def detect_type_from_text(value: str) -> str:
+    hay = normalize_text(value or "")
+    for ptype, kws in TYPE_RULES:
+        if any(kw in hay for kw in kws):
             return ptype
     return "other"
 
@@ -529,6 +541,15 @@ def main():
     csv_path = "product_recommendations.csv"
     existing_category_rows = read_existing_category_rows(csv_path)
     for row in existing_category_rows:
+        source_type = detect_type_from_text(row.get("Product ID", ""))
+        rec_type = detect_type_from_text(row.get("Recommended Product ID", ""))
+        # Enforce core business safety on preserved category rules.
+        if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:
+            continue
+        if source_type in GEAR_TYPES and rec_type in PARTS_TYPES:
+            continue
+        if source_type == "backpack" and rec_type not in BACKPACK_ALLOWED_TYPES:
+            continue
         out_rows.append({
             "Product ID": row.get("Product ID", ""),
             "Recommended Product ID": row.get("Recommended Product ID", ""),

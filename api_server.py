@@ -65,6 +65,8 @@ PRODUCT_TYPE_RULES = [
     ("pants", ["pant", "trouser", "bibs"]),
     ("gloves", ["glove", "gauntlet"]),
     ("boots", ["boot", "shoe"]),
+    ("hydration", ["hydration", "hydra", "reservoir", "water-pack", "water pack", "bladder"]),
+    ("luggage", ["tail-bag", "tail bag", "tank-bag", "tank bag", "drypack", "duffel", "fender-bag", "fender pack", "tool-pack", "tool pack", "toolbag"]),
     ("backpack", ["backpack", "luggage"]),
     ("communication", ["communication", "intercom", "bluetooth", "headset", "sena", "cardo"]),
     ("protection", ["protector", "armor", "armour", "chest", "back protector"]),
@@ -87,16 +89,18 @@ RUNTIME_COMPLEMENTARY_TYPES = {
     "brake": ["tire", "chain", "oil", "parts", "air_filter"],
     "chain": ["oil", "brake", "tire", "parts", "air_filter"],
     "parts": ["air_filter", "oil", "chain", "brake", "tire"],
-    "backpack": ["communication", "protection", "gloves", "backpack"],
-    "communication": ["backpack", "helmet", "gloves"],
-    "protection": ["jacket", "pants", "gloves", "backpack"],
+    "backpack": ["hydration", "luggage", "backpack"],
+    "hydration": ["backpack", "luggage"],
+    "luggage": ["backpack", "hydration"],
+    "communication": ["helmet", "gloves"],
+    "protection": ["jacket", "pants", "gloves"],
 }
 GEAR_TYPES = {
     "helmet", "helmet_accessory", "jacket", "pants", "gloves", "boots",
     "backpack", "communication", "protection",
 }
 PARTS_TYPES = {"air_filter", "oil", "tire", "brake", "chain", "parts"}
-BACKPACK_ALLOWED_TYPES = {"communication", "protection", "gloves", "backpack"}
+BACKPACK_ALLOWED_TYPES = {"hydration", "luggage", "backpack"}
 _GLOBAL_REC_BY_TYPE = defaultdict(list)
 
 

@@ -673,30 +673,56 @@ def simulate():
       button.secondary { background: #6b7280; }
       .muted { color: #555; font-size: 14px; }
       .pill { display: inline-block; background: #e5e7eb; border-radius: 999px; padding: 4px 8px; margin: 3px; font-size: 12px; }
+
+      .mini-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 9998; display: none; }
+      .mini-overlay.open { display: block; }
+      .mini-drawer {
+        position: fixed; top: 0; right: 0; height: 100vh; width: min(430px, 95vw);
+        background: #fff; z-index: 9999; transform: translateX(110%);
+        transition: transform .2s ease; border-left: 1px solid #e5e5e5;
+        display: flex; flex-direction: column;
+      }
+      .mini-drawer.open { transform: translateX(0); }
+      .mini-head { padding: 14px 16px; border-bottom: 1px solid #e5e5e5; display: flex; align-items: center; justify-content: space-between; }
+      .mini-body { padding: 14px 16px; overflow-y: auto; }
+      .mini-cart-items { margin-bottom: 12px; }
+      .mini-close { background: transparent; color: #111; border: 1px solid #d1d5db; }
     </style>
   </head>
   <body>
     <div class="wrap">
       <h2>Performance Cycle Recommendation Simulator</h2>
-      <p class="muted">Simulates how recommendations appear on the cart page.</p>
+      <p class="muted">Simulates instant mini-cart popup recommendations after Add to Cart.</p>
       <div class="panel">
-        <h3>Catalog (click to add to cart)</h3>
+        <div class="row" style="margin-bottom:8px;">
+          <h3 style="margin:0;">Catalog (click to add to cart)</h3>
+          <button class="secondary" id="open-drawer">Open Mini Cart</button>
+        </div>
         <div class="grid" id="catalog"></div>
       </div>
-      <div class="panel">
-        <div class="row">
-          <h3 style="margin:0;">Cart</h3>
+    </div>
+
+    <div class="mini-overlay" id="mini-overlay"></div>
+    <aside class="mini-drawer" id="mini-drawer">
+      <div class="mini-head">
+        <strong>Mini Cart</strong>
+        <button class="mini-close" id="close-drawer">Close</button>
+      </div>
+      <div class="mini-body">
+        <div class="row" style="margin-bottom:8px;">
+          <span class="muted">Items in cart</span>
           <button class="secondary" id="clear-cart">Clear Cart</button>
         </div>
-        <div id="cart-pills"></div>
+        <div class="mini-cart-items" id="cart-pills"></div>
+        <div id="fbt-widget-drawer"></div>
       </div>
-      <div class="panel"><div id="fbt-widget"></div></div>
-    </div>
+    </aside>
     <script>window.__CATALOG__ = {{ catalog | safe }};</script>
     <script src="/widget/fbt-widget.js"></script>
     <script>
       const catalog = window.__CATALOG__;
       let cartIds = [];
+      let widgetBooted = false;
       function renderCatalog() {
         const el = document.getElementById('catalog');
         el.innerHTML = Object.entries(catalog).map(([id, p]) => `
@@ -707,6 +733,16 @@ def simulate():
           </div>`).join('');
         el.querySelectorAll('button[data-id]').forEach(btn => btn.addEventListener('click', () => addToCart(btn.dataset.id)));
       }
+      function openDrawer() {
+        document.getElementById('mini-overlay').classList.add('open');
+        document.getElementById('mini-drawer').classList.add('open');
+      }
+
+      function closeDrawer() {
+        document.getElementById('mini-overlay').classList.remove('open');
+        document.getElementById('mini-drawer').classList.remove('open');
+      }
+
       function renderCart() {
         const cart = document.getElementById('cart-pills');
         cart.innerHTML = cartIds.length
@@ -716,24 +752,33 @@ def simulate():
       function addToCart(id) {
         if (!cartIds.includes(id)) cartIds.push(id);
         renderCart();
-        FBTWidget.refresh(cartIds);
+        openDrawer();
+        if (!window.FBTWidget) return;
+        if (!widgetBooted) {
+          FBTWidget.init({
+            apiUrl: window.location.origin,
+            cartProductIds: cartIds,
+            productCatalog: catalog,
+            containerId: 'fbt-widget-drawer',
+            title: 'Frequently Bought Together',
+            showAddButton: false,
+            onAddToCart: null
+          });
+          widgetBooted = true;
+        } else {
+          FBTWidget.refresh(cartIds);
+        }
       }
+      document.getElementById('open-drawer').addEventListener('click', openDrawer);
+      document.getElementById('close-drawer').addEventListener('click', closeDrawer);
+      document.getElementById('mini-overlay').addEventListener('click', closeDrawer);
       document.getElementById('clear-cart').addEventListener('click', () => {
         cartIds = [];
         renderCart();
-        FBTWidget.refresh(cartIds);
+        if (widgetBooted && window.FBTWidget) FBTWidget.refresh(cartIds);
       });
       renderCatalog();
       renderCart();
-      FBTWidget.init({
-        apiUrl: window.location.origin,
-        cartProductIds: cartIds,
-        productCatalog: catalog,
-        containerId: 'fbt-widget',
-        title: 'Frequently Bought Together',
-        showAddButton: false,
-        onAddToCart: null
-      });
     </script>
   </body>
 </html>

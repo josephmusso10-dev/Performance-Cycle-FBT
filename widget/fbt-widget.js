@@ -19,7 +19,7 @@
   'use strict';
 
   const defaultConfig = {
-    apiUrl: 'http://localhost:5000',
+    apiUrl: 'http://localhost:5050',
     cartProductIds: [],
     productCatalog: {},
     containerId: 'fbt-widget',
@@ -47,7 +47,15 @@
 
   function getProductUrl(id, catalog, cfg) {
     const p = catalog[id] || {};
-    if (p.url && typeof p.url === 'string' && p.url.trim()) return p.url;
+    if (p.url && typeof p.url === 'string' && p.url.trim()) {
+      const rawUrl = p.url.trim();
+      if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
+      if (rawUrl.startsWith('/')) {
+        const base = (((cfg && cfg.productUrlBase) || '').trim()).replace(/\/$/, '');
+        return base ? `${base}${rawUrl}` : rawUrl;
+      }
+      return rawUrl;
+    }
     // Fallback assumes recommendation IDs are storefront slugs.
     const slug = encodeURIComponent(id);
     const pattern = ((cfg && cfg.productUrlPattern) || '/products/{slug}/').replace('{slug}', slug);

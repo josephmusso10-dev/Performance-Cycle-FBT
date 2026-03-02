@@ -38,13 +38,14 @@ TYPE_RULES = [
     ("pants", ["pant", "trouser", "bibs"]),
     ("gloves", ["glove", "gauntlet"]),
     ("boots", ["boot", "shoe"]),
-    ("backpack", ["backpack", "bag", "pack", "luggage"]),
+    ("backpack", ["backpack", "bag", "luggage"]),
     ("communication", ["communication", "intercom", "bluetooth", "headset", "sena", "cardo", "schuberth sc2"]),
     ("tire", ["tire", "tyre", "wheel"]),
     ("air_filter", ["air filter", "air-filter", "filter"]),
     ("oil", ["oil", "lubricant", "lube", "fork oil", "transmission oil"]),
-    ("brake", ["brake", "pad", "rotor"]),
+    ("brake", ["brake", "brake pad", "rotor"]),
     ("chain", ["chain", "sprocket", "degreaser", "chain lube", "chain wax"]),
+    ("parts", ["stator", "starter", "gasket", "clutch", "rotor", "pedal", "bearing", "axle", "spark", "plug", "battery", "lever", "radiator", "hose", "fender", "fairing"]),
     ("protection", ["protector", "armor", "armour", "chest", "back protector"]),
 ]
 
@@ -62,9 +63,13 @@ COMPLEMENTARY_TYPES = {
     "oil": ["air_filter", "chain", "brake"],
     "chain": ["oil", "brake", "air_filter"],
     "brake": ["tire", "chain", "oil"],
+    "parts": ["air_filter", "oil", "chain", "brake", "tire"],
     "backpack": ["helmet", "jacket", "gloves"],
     "protection": ["jacket", "pants", "gloves", "boots"],
 }
+
+GEAR_TYPES = {"helmet", "helmet_accessory", "jacket", "pants", "gloves", "boots", "backpack", "communication", "protection"}
+PARTS_TYPES = {"air_filter", "oil", "tire", "brake", "chain", "parts"}
 
 
 @dataclass
@@ -288,13 +293,23 @@ def choose_three(
             return True
         return riding_type.get(slug, "unknown") == source_riding
 
+    def is_family_match(slug: str) -> bool:
+        rec_type = product_type.get(slug, "other")
+        # Hard business rule: parts/consumables should not recommend riding gear.
+        if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:
+            return False
+        # Symmetric safety: riding gear should not recommend parts/consumables.
+        if source_type in GEAR_TYPES and rec_type in PARTS_TYPES:
+            return False
+        return True
+
     # 0) Compatibility-first for helmets: prefer matching shields/visors/pinlocks
     if source_type == "helmet":
         helmet_acc_slugs = by_type.get("helmet_accessory", [])
         helmet_acc_candidates = [
             by_slug[s]
             for s in helmet_acc_slugs
-            if s in by_slug and s not in seen and is_riding_match(s)
+            if s in by_slug and s not in seen and is_riding_match(s) and is_family_match(s)
         ]
         for p in compatible_helmet_accessories(source, helmet_acc_candidates):
             picked.append(p)
@@ -307,7 +322,11 @@ def choose_three(
     comp_slugs = []
     for t in complementary:
         comp_slugs.extend(by_type.get(t, []))
-    comp_candidates = [by_slug[s] for s in comp_slugs if s in by_slug and s not in seen and is_riding_match(s)]
+    comp_candidates = [
+        by_slug[s]
+        for s in comp_slugs
+        if s in by_slug and s not in seen and is_riding_match(s) and is_family_match(s)
+    ]
     ranked = rank_candidates(source, comp_candidates)
     for p in ranked:
         if p.slug not in seen:
@@ -328,6 +347,7 @@ def choose_three(
         and s not in seen
         and product_type.get(s, "other") != source_type
         and is_riding_match(s)
+        and is_family_match(s)
     ]
     ranked = rank_candidates(source, category_candidates)
     for p in ranked:
@@ -345,6 +365,7 @@ def choose_three(
         and p.brand_id == source.brand_id
         and product_type.get(p.slug, "other") != source_type
         and is_riding_match(p.slug)
+        and is_family_match(p.slug)
     ]
     same_brand = sorted(same_brand, key=lambda p: p.price, reverse=True)
     for p in same_brand:
@@ -361,6 +382,8 @@ def choose_three(
             continue
         if product_type.get(slug, "other") == source_type:
             continue
+        if not is_family_match(slug):
+            continue
         p = by_slug.get(slug)
         if not p:
             continue
@@ -376,6 +399,8 @@ def choose_three(
             if slug in seen:
                 continue
             if not is_riding_match(slug):
+                continue
+            if not is_family_match(slug):
                 continue
             p = by_slug.get(slug)
             if not p:

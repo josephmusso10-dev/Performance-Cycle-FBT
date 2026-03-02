@@ -61,6 +61,12 @@ PRODUCT_TYPE_RULES = [
     ("pants", ["pant", "trouser", "bibs"]),
     ("gloves", ["glove", "gauntlet"]),
     ("boots", ["boot", "shoe"]),
+    ("air_filter", ["air-filter", "air filter", "filter"]),
+    ("oil", ["oil", "lubricant", "lube", "fork-oil", "transmission-oil"]),
+    ("tire", ["tire", "tyre", "wheel"]),
+    ("brake", ["brake", "brake pad", "rotor"]),
+    ("chain", ["chain", "sprocket", "degreaser", "chain-lube", "chain-wax"]),
+    ("parts", ["stator", "starter", "gasket", "clutch", "bearing", "axle", "spark", "plug", "battery", "lever", "radiator", "hose"]),
 ]
 RUNTIME_COMPLEMENTARY_TYPES = {
     "pants": ["jacket", "gloves", "boots", "helmet"],
@@ -68,7 +74,15 @@ RUNTIME_COMPLEMENTARY_TYPES = {
     "helmet": ["helmet_accessory", "gloves", "jacket", "boots"],
     "gloves": ["jacket", "pants", "helmet", "boots"],
     "boots": ["jacket", "pants", "gloves", "helmet"],
+    "air_filter": ["oil", "chain", "brake", "tire", "parts"],
+    "oil": ["air_filter", "chain", "brake", "parts", "tire"],
+    "tire": ["brake", "chain", "oil", "parts", "air_filter"],
+    "brake": ["tire", "chain", "oil", "parts", "air_filter"],
+    "chain": ["oil", "brake", "tire", "parts", "air_filter"],
+    "parts": ["air_filter", "oil", "chain", "brake", "tire"],
 }
+GEAR_TYPES = {"helmet", "helmet_accessory", "jacket", "pants", "gloves", "boots"}
+PARTS_TYPES = {"air_filter", "oil", "tire", "brake", "chain", "parts"}
 _GLOBAL_REC_BY_TYPE = defaultdict(list)
 
 
@@ -291,6 +305,10 @@ def _pick_global_candidate(source_type: str, source_brand: str, rec_type: str, s
     for rid in candidates:
         if rid in selected_ids:
             continue
+        if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:
+            continue
+        if source_type in GEAR_TYPES and rec_type in PARTS_TYPES:
+            continue
         if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants", "gloves"}:
             rec_brand = _extract_brand_token(rid)
             if source_brand and rec_brand and source_brand != rec_brand:
@@ -305,6 +323,10 @@ def _pick_global_candidate_any(source_type: str, source_brand: str, selected_ids
             continue
         for rid in candidates:
             if rid in selected_ids:
+                continue
+            if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:
+                continue
+            if source_type in GEAR_TYPES and rec_type in PARTS_TYPES:
                 continue
             if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants", "gloves"}:
                 rec_brand = _extract_brand_token(rid)
@@ -330,6 +352,13 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         if not rid:
             continue
         rec_type = _detect_product_type(rid)
+
+        # Hard rule: parts/consumables should not recommend riding gear.
+        if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:
+            continue
+        # Symmetric safety: riding gear should not recommend parts/consumables.
+        if source_type in GEAR_TYPES and rec_type in PARTS_TYPES:
+            continue
 
         # Brand consistency for apparel-to-apparel recommendations.
         if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants", "gloves"}:
@@ -718,7 +747,8 @@ def simulate():
       </div>
     </aside>
     <script>window.__CATALOG__ = {{ catalog | safe }};</script>
-    <script src="/widget/fbt-widget.js"></script>
+    <script>window.__STOREFRONT_BASE__ = {{ storefront_base | tojson }};</script>
+    <script src="/widget/fbt-widget.js?v=6"></script>
     <script>
       const catalog = window.__CATALOG__;
       let cartIds = [];
@@ -759,6 +789,7 @@ def simulate():
             apiUrl: window.location.origin,
             cartProductIds: cartIds,
             productCatalog: catalog,
+            productUrlBase: window.__STOREFRONT_BASE__ || '',
             containerId: 'fbt-widget-drawer',
             title: 'Frequently Bought Together',
             showAddButton: false,
@@ -783,7 +814,12 @@ def simulate():
   </body>
 </html>
 """
-    return render_template_string(html, catalog=json.dumps(sample_catalog))
+    storefront_base = STOREFRONT_BASE_URL or "https://www.performancecycle.com"
+    return render_template_string(
+        html,
+        catalog=json.dumps(sample_catalog),
+        storefront_base=storefront_base,
+    )
 
 
 @app.route("/api/fbt")

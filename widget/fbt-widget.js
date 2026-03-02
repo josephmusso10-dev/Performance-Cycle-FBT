@@ -27,7 +27,7 @@
     title: 'Frequently Bought Together',
     showAddButton: true,
     productUrlBase: '', // Optional, e.g. "https://performancecycle.com"
-    productUrlPattern: '/products/{slug}/', // BigCommerce default product URL pattern
+    productUrlPattern: '/{slug}/', // Performance Cycle storefront product URL pattern
     theme: {
       border: '#e5e5e5',
       text: '#222',
@@ -58,7 +58,7 @@
     }
     // Fallback assumes recommendation IDs are storefront slugs.
     const slug = encodeURIComponent(id);
-    const pattern = ((cfg && cfg.productUrlPattern) || '/products/{slug}/').replace('{slug}', slug);
+    const pattern = ((cfg && cfg.productUrlPattern) || '/{slug}/').replace('{slug}', slug);
     const base = (((cfg && cfg.productUrlBase) || '').trim()).replace(/\/$/, '');
     return `${base}${pattern.startsWith('/') ? pattern : `/${pattern}`}`;
   }

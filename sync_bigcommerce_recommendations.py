@@ -64,12 +64,13 @@ COMPLEMENTARY_TYPES = {
     "chain": ["oil", "brake", "air_filter"],
     "brake": ["tire", "chain", "oil"],
     "parts": ["air_filter", "oil", "chain", "brake", "tire"],
-    "backpack": ["helmet", "jacket", "gloves"],
+    "backpack": ["communication", "protection", "gloves"],
     "protection": ["jacket", "pants", "gloves", "boots"],
 }
 
 GEAR_TYPES = {"helmet", "helmet_accessory", "jacket", "pants", "gloves", "boots", "backpack", "communication", "protection"}
 PARTS_TYPES = {"air_filter", "oil", "tire", "brake", "chain", "parts"}
+BACKPACK_ALLOWED_TYPES = {"communication", "protection", "gloves", "backpack"}
 
 
 @dataclass
@@ -301,6 +302,19 @@ def choose_three(
         # Symmetric safety: riding gear should not recommend parts/consumables.
         if source_type in GEAR_TYPES and rec_type in PARTS_TYPES:
             return False
+        # Backpack should recommend backpack-adjacent items only.
+        if source_type == "backpack" and rec_type not in BACKPACK_ALLOWED_TYPES:
+            return False
+        return True
+
+    def is_price_reasonable(slug: str) -> bool:
+        p = by_slug.get(slug)
+        if not p:
+            return False
+        # Keep backpack recommendations in a realistic range.
+        if source_type == "backpack":
+            max_allowed = max(source.price * 1.6, source.price + 120.0)
+            return p.price <= max_allowed
         return True
 
     # 0) Compatibility-first for helmets: prefer matching shields/visors/pinlocks
@@ -309,7 +323,7 @@ def choose_three(
         helmet_acc_candidates = [
             by_slug[s]
             for s in helmet_acc_slugs
-            if s in by_slug and s not in seen and is_riding_match(s) and is_family_match(s)
+            if s in by_slug and s not in seen and is_riding_match(s) and is_family_match(s) and is_price_reasonable(s)
         ]
         for p in compatible_helmet_accessories(source, helmet_acc_candidates):
             picked.append(p)
@@ -325,7 +339,7 @@ def choose_three(
     comp_candidates = [
         by_slug[s]
         for s in comp_slugs
-        if s in by_slug and s not in seen and is_riding_match(s) and is_family_match(s)
+        if s in by_slug and s not in seen and is_riding_match(s) and is_family_match(s) and is_price_reasonable(s)
     ]
     ranked = rank_candidates(source, comp_candidates)
     for p in ranked:
@@ -348,6 +362,7 @@ def choose_three(
         and product_type.get(s, "other") != source_type
         and is_riding_match(s)
         and is_family_match(s)
+        and is_price_reasonable(s)
     ]
     ranked = rank_candidates(source, category_candidates)
     for p in ranked:
@@ -366,6 +381,7 @@ def choose_three(
         and product_type.get(p.slug, "other") != source_type
         and is_riding_match(p.slug)
         and is_family_match(p.slug)
+        and is_price_reasonable(p.slug)
     ]
     same_brand = sorted(same_brand, key=lambda p: p.price, reverse=True)
     for p in same_brand:
@@ -384,6 +400,8 @@ def choose_three(
             continue
         if not is_family_match(slug):
             continue
+        if not is_price_reasonable(slug):
+            continue
         p = by_slug.get(slug)
         if not p:
             continue
@@ -401,6 +419,8 @@ def choose_three(
             if not is_riding_match(slug):
                 continue
             if not is_family_match(slug):
+                continue
+            if not is_price_reasonable(slug):
                 continue
             p = by_slug.get(slug)
             if not p:

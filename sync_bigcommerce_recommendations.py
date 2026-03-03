@@ -118,6 +118,15 @@ RIDING_TYPE_RULES = {
     ],
 }
 
+STREET_RACE_KEYWORDS = [
+    "race", "racing", "track", "pista", "gp", "supersport", "sportbike",
+    "r10", "x-15", "rf-1400", "corsair",
+]
+STREET_TOURING_KEYWORDS = [
+    "tour", "touring", "adventure", "adv", "enduro",
+    "dual-sport", "dualsport", "commuter", "cruiser",
+]
+
 
 def parse_slug(custom_url: dict) -> str:
     if not custom_url:
@@ -257,6 +266,36 @@ def detect_riding_type_from_text(value: str) -> str:
     return "unknown"
 
 
+def detect_street_subtype(product: Product) -> str:
+    if detect_riding_type(product) != "street":
+        return "other"
+    hay = " ".join(
+        [
+            normalize_text(product.slug),
+            normalize_text(product.name),
+            " ".join(normalize_text(cn) for cn in product.category_names),
+        ]
+    )
+    race_hit = any(kw in hay for kw in STREET_RACE_KEYWORDS)
+    touring_hit = any(kw in hay for kw in STREET_TOURING_KEYWORDS)
+    if race_hit and not touring_hit:
+        return "race"
+    if touring_hit and not race_hit:
+        return "touring"
+    return "other"
+
+
+def detect_street_subtype_from_text(value: str) -> str:
+    hay = normalize_text(value or "")
+    race_hit = any(kw in hay for kw in STREET_RACE_KEYWORDS)
+    touring_hit = any(kw in hay for kw in STREET_TOURING_KEYWORDS)
+    if race_hit and not touring_hit:
+        return "race"
+    if touring_hit and not race_hit:
+        return "touring"
+    return "other"
+
+
 def brand_token(product: Product) -> str:
     toks = tokenize(product.slug)
     return toks[0] if toks else ""
@@ -311,6 +350,7 @@ def choose_three(
 ) -> List[Product]:
     seen = set([source.slug])
     picked: List[Product] = []
+    source_street_subtype = detect_street_subtype(source)
 
     def is_riding_match(slug: str) -> bool:
         if source_riding == "unknown":
@@ -333,6 +373,15 @@ def choose_three(
             return False
         return True
 
+    def is_street_subtype_match(slug: str) -> bool:
+        if source_riding != "street" or source_street_subtype != "race":
+            return True
+        p = by_slug.get(slug)
+        if not p:
+            return False
+        # Street race products should not receive touring/adventure-style recs.
+        return detect_street_subtype(p) != "touring"
+
     def is_price_reasonable(slug: str) -> bool:
         p = by_slug.get(slug)
         if not p:
@@ -349,7 +398,7 @@ def choose_three(
         helmet_acc_candidates = [
             by_slug[s]
             for s in helmet_acc_slugs
-            if s in by_slug and s not in seen and is_riding_match(s) and is_family_match(s) and is_price_reasonable(s)
+            if s in by_slug and s not in seen and is_riding_match(s) and is_family_match(s) and is_street_subtype_match(s) and is_price_reasonable(s)
         ]
         for p in compatible_helmet_accessories(source, helmet_acc_candidates):
             picked.append(p)
@@ -365,7 +414,7 @@ def choose_three(
     comp_candidates = [
         by_slug[s]
         for s in comp_slugs
-        if s in by_slug and s not in seen and is_riding_match(s) and is_family_match(s) and is_price_reasonable(s)
+        if s in by_slug and s not in seen and is_riding_match(s) and is_family_match(s) and is_street_subtype_match(s) and is_price_reasonable(s)
     ]
     ranked = rank_candidates(source, comp_candidates)
     for p in ranked:
@@ -388,6 +437,7 @@ def choose_three(
         and product_type.get(s, "other") != source_type
         and is_riding_match(s)
         and is_family_match(s)
+        and is_street_subtype_match(s)
         and is_price_reasonable(s)
     ]
     ranked = rank_candidates(source, category_candidates)
@@ -407,6 +457,7 @@ def choose_three(
         and product_type.get(p.slug, "other") != source_type
         and is_riding_match(p.slug)
         and is_family_match(p.slug)
+        and is_street_subtype_match(p.slug)
         and is_price_reasonable(p.slug)
     ]
     same_brand = sorted(same_brand, key=lambda p: p.price, reverse=True)
@@ -425,6 +476,8 @@ def choose_three(
         if product_type.get(slug, "other") == source_type:
             continue
         if not is_family_match(slug):
+            continue
+        if not is_street_subtype_match(slug):
             continue
         if not is_price_reasonable(slug):
             continue
@@ -445,6 +498,8 @@ def choose_three(
             if not is_riding_match(slug):
                 continue
             if not is_family_match(slug):
+                continue
+            if not is_street_subtype_match(slug):
                 continue
             if not is_price_reasonable(slug):
                 continue
@@ -559,6 +614,8 @@ def main():
         rec_type = detect_type_from_text(row.get("Recommended Product ID", ""))
         source_riding = (row.get("Source Riding Type") or "").strip().lower() or detect_riding_type_from_text(row.get("Product ID", ""))
         rec_riding = (row.get("Recommended Riding Type") or "").strip().lower() or detect_riding_type_from_text(row.get("Recommended Product ID", ""))
+        source_street_subtype = detect_street_subtype_from_text(row.get("Product ID", "")) if source_riding == "street" else "other"
+        rec_street_subtype = detect_street_subtype_from_text(row.get("Recommended Product ID", "")) if rec_riding == "street" else "other"
         # Enforce core business safety on preserved category rules.
         if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:
             continue
@@ -568,6 +625,8 @@ def main():
             continue
         # Enforce same riding-type rule when source can be classified.
         if source_riding in {"street", "dirt"} and rec_riding != source_riding:
+            continue
+        if source_riding == "street" and source_street_subtype == "race" and rec_street_subtype == "touring":
             continue
         out_rows.append({
             "Product ID": row.get("Product ID", ""),

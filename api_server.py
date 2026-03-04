@@ -101,6 +101,10 @@ GEAR_TYPES = {
 }
 PARTS_TYPES = {"air_filter", "oil", "tire", "brake", "chain", "parts"}
 BACKPACK_ALLOWED_TYPES = {"hydration", "luggage"}
+VEHICLE_SPECIFIC_TERMS = {
+    "harley", "davidson", "goldwing", "indian", "polaris", "can-am",
+    "spyder", "ryker", "slingshot",
+}
 RIDING_TYPE_RULES = {
     "dirt": [
         "dirt", "mx", "motocross", "offroad", "off-road", "enduro",
@@ -306,6 +310,11 @@ def _detect_street_subtype(slug: str) -> str:
     return "other"
 
 
+def _is_vehicle_specific(slug: str) -> bool:
+    text = _normalize_slug_text(slug)
+    return any(term in text for term in VEHICLE_SPECIFIC_TERMS)
+
+
 def _sort_by_priority(recommendations: list) -> list:
     return sorted(
         recommendations,
@@ -373,6 +382,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
             continue
         if rid == source_product_id:
             continue
+        if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
+            continue
         if source_riding in {"street", "dirt"} and _detect_riding_type(rid) != source_riding:
             continue
         if source_riding == "street" and source_street_subtype == "race" and _detect_street_subtype(rid) == "touring":
@@ -389,7 +400,6 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
             rec_brand = _extract_brand_token(rid)
             if source_brand and rec_brand and source_brand != rec_brand:
                 continue
-        # Helmet-specific compatibility: helmet and helmet accessories must match helmet brand.
         if source_type == "helmet" and rec_type in {"helmet", "helmet_accessory"}:
             rec_brand = _extract_brand_token(rid)
             if source_brand and rec_brand and source_brand != rec_brand:
@@ -406,6 +416,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
             if rid in selected_ids:
                 continue
             if rid == source_product_id:
+                continue
+            if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
                 continue
             if source_riding in {"street", "dirt"} and _detect_riding_type(rid) != source_riding:
                 continue
@@ -451,6 +463,8 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         rec_type = _detect_product_type(rid)
         rec_riding = _detect_riding_type(rid)
         rec_street_subtype = _detect_street_subtype(rid)
+        if not _is_vehicle_specific(product_id) and _is_vehicle_specific(rid):
+            continue
         if source_riding in {"street", "dirt"} and rec_riding != source_riding:
             continue
         if source_riding == "street" and source_street_subtype == "race" and rec_street_subtype == "touring":
@@ -511,6 +525,38 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
             seen_types.add(desired_type)
             if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
                 break
+
+    # For helmets, fill remaining slots with same-brand helmet accessories
+    # rather than pulling unrelated global items.
+    if source_type == "helmet" and len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:
+        ha_candidates = _GLOBAL_REC_BY_TYPE.get("helmet_accessory", [])
+        for rid in ha_candidates:
+            if rid in selected_ids or rid == product_id:
+                continue
+            rec_brand = _extract_brand_token(rid)
+            if source_brand and rec_brand and source_brand != rec_brand:
+                continue
+            if _is_vehicle_specific(rid):
+                continue
+            selected.append({"id": rid, "label": "Complements your helmet", "priority": "Secondary"})
+            selected_ids.add(rid)
+            if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
+                break
+
+    # For helmets, also try communication devices (non-vehicle-specific).
+    if source_type == "helmet" and "communication" not in seen_types and len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:
+        comm_candidates = _GLOBAL_REC_BY_TYPE.get("communication", [])
+        for rid in comm_candidates:
+            if rid in selected_ids or rid == product_id:
+                continue
+            if _is_vehicle_specific(rid):
+                continue
+            if source_riding == "street" and source_street_subtype == "race" and _detect_street_subtype(rid) == "touring":
+                continue
+            selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})
+            selected_ids.add(rid)
+            seen_types.add("communication")
+            break
 
     # Try any other unseen type if desired map didn't fill all slots.
     while len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:

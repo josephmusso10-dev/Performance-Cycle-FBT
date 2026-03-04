@@ -59,12 +59,12 @@ PER_PRODUCT_RECOMMENDATION_LIMIT = 3
 
 # Keep this lightweight/type-focused for runtime filtering.
 PRODUCT_TYPE_RULES = [
-    ("helmet_accessory", ["visor", "face-shield", "faceshield", "shield", "pinlock", "cheekpad", "cheek-pad", "cheek pad"]),
+    ("helmet_accessory", ["visor", "face-shield", "faceshield", "shield", "pinlock", "cheekpad", "cheek-pad", "cheek pad", "chin curtain", "curtain"]),
     ("helmet", ["helmet"]),
     ("jacket", ["jacket", "coat", "parka"]),
     ("pants", ["pant", "trouser", "bibs"]),
     ("gloves", ["glove", "gauntlet"]),
-    ("boots", ["boot", "shoe"]),
+    ("boots", ["boot"]),
     ("hydration", ["hydration", "hydradri", "hydralite", "reservoir", "water-pack", "water pack", "bladder"]),
     ("luggage", ["tail-bag", "tail bag", "tank-bag", "tank bag", "drypack", "duffel", "fender-bag", "fender pack", "tool-pack", "tool pack", "toolbag", "fanny", "waist pack", "hip pack", "sling"]),
     ("backpack", ["backpack", "luggage"]),
@@ -345,7 +345,7 @@ def _refresh_global_rec_pool(explicit_map: dict, category_rule_list: list) -> No
         _GLOBAL_REC_BY_TYPE[rec_type] = ids
 
 
-def _pick_global_candidate(source_type: str, source_brand: str, source_riding: str, source_street_subtype: str, rec_type: str, selected_ids: set) -> str:
+def _pick_global_candidate(source_product_id: str, source_type: str, source_brand: str, source_riding: str, source_street_subtype: str, rec_type: str, selected_ids: set) -> str:
     candidates = _GLOBAL_REC_BY_TYPE.get(rec_type, [])
     # Special fallback preference:
     # For jacket/pants -> gloves, if same-brand gloves are unavailable,
@@ -354,11 +354,15 @@ def _pick_global_candidate(source_type: str, source_brand: str, source_riding: s
         for rid in candidates:
             if rid in selected_ids:
                 continue
+            if rid == source_product_id:
+                continue
             rec_brand = _extract_brand_token(rid)
             if source_brand and rec_brand == source_brand:
                 return rid
         for rid in candidates:
             if rid in selected_ids:
+                continue
+            if rid == source_product_id:
                 continue
             rec_brand = _extract_brand_token(rid)
             if rec_brand == "alpinestars":
@@ -366,6 +370,8 @@ def _pick_global_candidate(source_type: str, source_brand: str, source_riding: s
 
     for rid in candidates:
         if rid in selected_ids:
+            continue
+        if rid == source_product_id:
             continue
         if source_riding in {"street", "dirt"} and _detect_riding_type(rid) != source_riding:
             continue
@@ -383,16 +389,23 @@ def _pick_global_candidate(source_type: str, source_brand: str, source_riding: s
             rec_brand = _extract_brand_token(rid)
             if source_brand and rec_brand and source_brand != rec_brand:
                 continue
+        # Helmet-specific compatibility: helmet and helmet accessories must match helmet brand.
+        if source_type == "helmet" and rec_type in {"helmet", "helmet_accessory"}:
+            rec_brand = _extract_brand_token(rid)
+            if source_brand and rec_brand and source_brand != rec_brand:
+                continue
         return rid
     return ""
 
 
-def _pick_global_candidate_any(source_type: str, source_brand: str, source_riding: str, source_street_subtype: str, selected_ids: set, used_types: set) -> tuple:
+def _pick_global_candidate_any(source_product_id: str, source_type: str, source_brand: str, source_riding: str, source_street_subtype: str, selected_ids: set, used_types: set) -> tuple:
     for rec_type, candidates in _GLOBAL_REC_BY_TYPE.items():
         if rec_type in used_types:
             continue
         for rid in candidates:
             if rid in selected_ids:
+                continue
+            if rid == source_product_id:
                 continue
             if source_riding in {"street", "dirt"} and _detect_riding_type(rid) != source_riding:
                 continue
@@ -407,6 +420,10 @@ def _pick_global_candidate_any(source_type: str, source_brand: str, source_ridin
             if source_type == "backpack" and rec_type == "backpack":
                 continue
             if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants", "gloves"}:
+                rec_brand = _extract_brand_token(rid)
+                if source_brand and rec_brand and source_brand != rec_brand:
+                    continue
+            if source_type == "helmet" and rec_type in {"helmet", "helmet_accessory"}:
                 rec_brand = _extract_brand_token(rid)
                 if source_brand and rec_brand and source_brand != rec_brand:
                     continue
@@ -456,6 +473,11 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
             rec_brand = _extract_brand_token(rid)
             if source_brand and rec_brand and source_brand != rec_brand:
                 continue
+        # Brand consistency for helmets and fit-sensitive helmet products.
+        if source_type == "helmet" and rec_type in {"helmet", "helmet_accessory"}:
+            rec_brand = _extract_brand_token(rid)
+            if source_brand and rec_brand and source_brand != rec_brand:
+                continue
         filtered.append(rec)
 
     # Prefer 3 different recommendation types first.
@@ -481,7 +503,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         for desired_type in desired_types:
             if desired_type in seen_types:
                 continue
-            rid = _pick_global_candidate(source_type, source_brand, source_riding, source_street_subtype, desired_type, selected_ids)
+            rid = _pick_global_candidate(product_id, source_type, source_brand, source_riding, source_street_subtype, desired_type, selected_ids)
             if not rid:
                 continue
             selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})
@@ -492,7 +514,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
 
     # Try any other unseen type if desired map didn't fill all slots.
     while len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:
-        rid, rec_type = _pick_global_candidate_any(source_type, source_brand, source_riding, source_street_subtype, selected_ids, seen_types)
+        rid, rec_type = _pick_global_candidate_any(product_id, source_type, source_brand, source_riding, source_street_subtype, selected_ids, seen_types)
         if not rid:
             break
         selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})

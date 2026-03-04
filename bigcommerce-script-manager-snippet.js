@@ -96,7 +96,7 @@
     return new Promise(function (resolve, reject) {
       if (window.FBTWidget) return resolve();
       var s = document.createElement("script");
-      s.src = API_URL + "/widget/fbt-widget.js";
+      s.src = API_URL + "/widget/fbt-widget.js?v=4";
       s.async = true;
       s.onload = function () { resolve(); };
       s.onerror = reject;

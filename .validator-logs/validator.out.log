@@ -176,3 +176,246 @@
 - Row 419: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-pista-gp-rr-face-shield')
 ... and 655 more errors
 [17:20:21] Validation failed.
+[12:49:34] Change detected, running validation...
+
+[12:49:34] Checked: product_recommendations.csv
+[12:49:34] Errors: 570 | Warnings: 0
+[12:49:34] Top errors:
+- Row 398: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 399: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 400: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-ax8-ds-shield')
+- Row 401: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 402: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 403: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-ax8-ds-shield')
+- Row 404: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 405: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 406: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-ax8-ds-shield')
+- Row 407: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 408: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 409: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-ax8-ds-shield')
+- Row 410: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 411: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 412: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-ax8-ds-shield')
+- Row 413: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 414: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 415: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-ax8-ds-shield')
+- Row 416: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 417: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-k6-pinlock-face-shield')
+... and 550 more errors
+[12:49:34] Validation failed.
+[12:58:34] Change detected, running validation...
+
+[12:58:34] Checked: product_recommendations.csv
+[12:58:34] Errors: 570 | Warnings: 0
+[12:58:34] Top errors:
+- Row 398: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 399: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 400: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-ax8-ds-shield')
+- Row 401: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 402: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 403: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-ax8-ds-shield')
+- Row 404: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 405: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 406: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-ax8-ds-shield')
+- Row 407: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 408: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 409: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-ax8-ds-shield')
+- Row 410: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 411: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 412: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-ax8-ds-shield')
+- Row 413: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 414: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 415: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-ax8-ds-shield')
+- Row 416: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 417: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-k6-pinlock-face-shield')
+... and 550 more errors
+[12:58:34] Validation failed.
+[13:36:38] Change detected, running validation...
+
+[13:36:38] Checked: product_recommendations.csv
+[13:36:38] Errors: 570 | Warnings: 0
+[13:36:38] Top errors:
+- Row 398: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 399: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 400: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-ax8-ds-shield')
+- Row 401: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 402: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 403: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-ax8-ds-shield')
+- Row 404: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 405: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 406: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-ax8-ds-shield')
+- Row 407: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 408: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 409: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-ax8-ds-shield')
+- Row 410: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 411: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 412: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-ax8-ds-shield')
+- Row 413: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 414: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 415: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-ax8-ds-shield')
+- Row 416: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 417: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-k6-pinlock-face-shield')
+... and 550 more errors
+[13:36:38] Validation failed.
+[13:48:27] Change detected, running validation...
+
+[13:48:27] Checked: product_recommendations.csv
+[13:48:27] Errors: 570 | Warnings: 0
+[13:48:27] Top errors:
+- Row 398: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 399: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 400: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-ax8-ds-shield')
+- Row 401: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 402: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 403: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-ax8-ds-shield')
+- Row 404: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 405: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 406: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-ax8-ds-shield')
+- Row 407: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 408: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 409: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-ax8-ds-shield')
+- Row 410: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 411: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 412: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-ax8-ds-shield')
+- Row 413: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 414: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 415: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-ax8-ds-shield')
+- Row 416: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 417: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-k6-pinlock-face-shield')
+... and 550 more errors
+[13:48:27] Validation failed.
+[13:49:05] Change detected, running validation...
+
+[13:49:06] Checked: product_recommendations.csv
+[13:49:06] Errors: 570 | Warnings: 0
+[13:49:06] Top errors:
+- Row 398: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 399: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 400: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-ax8-ds-shield')
+- Row 401: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 402: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 403: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-ax8-ds-shield')
+- Row 404: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 405: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 406: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-ax8-ds-shield')
+- Row 407: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 408: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 409: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-ax8-ds-shield')
+- Row 410: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 411: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 412: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-ax8-ds-shield')
+- Row 413: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 414: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 415: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-ax8-ds-shield')
+- Row 416: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 417: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-k6-pinlock-face-shield')
+... and 550 more errors
+[13:49:06] Validation failed.
+[13:58:08] Change detected, running validation...
+
+[13:58:08] Checked: product_recommendations.csv
+[13:58:08] Errors: 570 | Warnings: 0
+[13:58:08] Top errors:
+- Row 398: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 399: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 400: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-ax8-ds-shield')
+- Row 401: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 402: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 403: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-ax8-ds-shield')
+- Row 404: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 405: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 406: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-ax8-ds-shield')
+- Row 407: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 408: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 409: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-ax8-ds-shield')
+- Row 410: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 411: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 412: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-ax8-ds-shield')
+- Row 413: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 414: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 415: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-ax8-ds-shield')
+- Row 416: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 417: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-k6-pinlock-face-shield')
+... and 550 more errors
+[13:58:08] Validation failed.
+[13:58:41] Change detected, running validation...
+
+[13:58:41] Checked: product_recommendations.csv
+[13:58:41] Errors: 570 | Warnings: 0
+[13:58:41] Top errors:
+- Row 398: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 399: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 400: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-ax8-ds-shield')
+- Row 401: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 402: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 403: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-ax8-ds-shield')
+- Row 404: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 405: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 406: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-ax8-ds-shield')
+- Row 407: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 408: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 409: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-ax8-ds-shield')
+- Row 410: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 411: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 412: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-ax8-ds-shield')
+- Row 413: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 414: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 415: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-ax8-ds-shield')
+- Row 416: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 417: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-k6-pinlock-face-shield')
+... and 550 more errors
+[13:58:41] Validation failed.
+[14:05:22] Change detected, running validation...
+
+[14:05:22] Checked: product_recommendations.csv
+[14:05:22] Errors: 570 | Warnings: 0
+[14:05:22] Top errors:
+- Row 398: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 399: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 400: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-ax8-ds-shield')
+- Row 401: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 402: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 403: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-ax8-ds-shield')
+- Row 404: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 405: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 406: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-ax8-ds-shield')
+- Row 407: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 408: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 409: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-ax8-ds-shield')
+- Row 410: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 411: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 412: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-ax8-ds-shield')
+- Row 413: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 414: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 415: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-ax8-ds-shield')
+- Row 416: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 417: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-k6-pinlock-face-shield')
+... and 550 more errors
+[14:05:22] Validation failed.
+[14:13:37] Change detected, running validation...
+
+[14:13:37] Checked: product_recommendations.csv
+[14:13:37] Errors: 570 | Warnings: 0
+[14:13:37] Top errors:
+- Row 398: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 399: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 400: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-bezzecchi-2023-helmet' -> 'agv-ax8-ds-shield')
+- Row 401: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 402: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 403: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-fastlap-helmet' -> 'agv-ax8-ds-shield')
+- Row 404: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 405: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 406: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-grazie-vale-helmet' -> 'agv-ax8-ds-shield')
+- Row 407: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 408: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 409: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-helmet' -> 'agv-ax8-ds-shield')
+- Row 410: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 411: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 412: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-limit-46-helmet' -> 'agv-ax8-ds-shield')
+- Row 413: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 414: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-k6-pinlock-face-shield')
+- Row 415: missing verified compatibility source for fit-sensitive accessory ('agv-k1s-soleluna-2018-helmet' -> 'agv-ax8-ds-shield')
+- Row 416: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-pista-gp-rr-face-shield')
+- Row 417: missing verified compatibility source for fit-sensitive accessory ('agv-k3-helmet' -> 'agv-k6-pinlock-face-shield')
+... and 550 more errors
+[14:13:37] Validation failed.

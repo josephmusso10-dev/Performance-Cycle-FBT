@@ -68,7 +68,7 @@ PRODUCT_TYPE_RULES = [
     ("hydration", ["hydration", "hydradri", "hydralite", "reservoir", "water-pack", "water pack", "bladder"]),
     ("luggage", ["tail-bag", "tail bag", "tank-bag", "tank bag", "drypack", "duffel", "fender-bag", "fender pack", "tool-pack", "tool pack", "toolbag", "fanny", "waist pack", "hip pack", "sling"]),
     ("backpack", ["backpack", "luggage"]),
-    ("communication", ["communication", "intercom", "bluetooth", "headset", "sena", "cardo"]),
+    ("communication", ["communication", "intercom", "bluetooth", "headset", "sena", "cardo", "boss audio"]),
     ("protection", ["protector", "armor", "armour", "chest", "back protector"]),
     ("air_filter", ["air-filter", "air filter", "filter"]),
     ("oil", ["oil", "lubricant", "lube", "fork-oil", "transmission-oil"]),
@@ -162,16 +162,37 @@ RIDING_TYPE_RULES = {
         "dirt", "mx", "motocross", "offroad", "off-road", "enduro",
         "trail", "atv", "cross", "dualsport", "dual-sport", "adventure", "adv",
         "sx", "fx", "kawasaki kx", "yz", "crf", "rmz", "ktm exc", "husqvarna fe",
+        "dirtpaw", "patrol", "kinetic", "f-16", "f 16",
+        "moto-9", "moto 9", "formula-cc",
     ],
     "street": [
         "street", "sportbike", "supersport", "touring", "commuter",
         "cruiser", "harley", "goldwing", "roadsmart", "pilot road",
-        "rpha", "x-15", "rf-1400", "neotec", "pista", "corsair",
+        "rpha", "x 15", "x fifteen", "rf 1400", "neotec", "pista", "corsair",
+        "gt air", "k6", "k1s", "k3", "challenger", "vortex",
+        "celer", "gp pro", "gp r", "gp tech", "spx air",
+        "sp 365", "mustang", "chrome",
+        "airflite", "airframe", "anthem", "overlord", "pursuit",
+        "jab", "louie", "ranger", "recoil", "roulette", "vixen", "ivy",
+        "mosca", "avion", "caliber", "cassini", "cayenne", "dominator",
+        "hydra", "kodiak", "kryptonite", "league", "rsr",
+        "speedart", "stratos", "summit", "taurus",
+        "cortech", "dainese", "noru", "highway 21",
+        "stunt iii",
+        "shoei", "agv", "arai", "schuberth", "nolan", "biltwell", "gmax",
     ],
+}
+DIRT_ONLY_BRANDS = {
+    "fly", "fox", "fasthouse", "troy", "seven", "shift", "thor", "one", "leatt",
+}
+STREET_ONLY_BRANDS = {
+    "dainese", "cortech", "noru", "highway", "rst", "olympia", "firstgear",
+    "tourmaster", "warm", "scorpion",
+    "cardo", "sena", "schuberth", "boss",
 }
 STREET_RACE_KEYWORDS = [
     "race", "racing", "track", "pista", "gp", "supersport", "sportbike",
-    "r10", "x-15", "rf-1400", "corsair",
+    "r10", "x 15", "x fifteen", "rf 1400", "corsair",
 ]
 STREET_TOURING_KEYWORDS = [
     "tour", "touring", "adventure", "adv", "enduro",
@@ -345,6 +366,11 @@ def _detect_riding_type(slug: str) -> str:
     if dirt_hit and not street_hit:
         return "dirt"
     if street_hit and not dirt_hit:
+        return "street"
+    brand = _extract_brand_token(slug)
+    if brand in DIRT_ONLY_BRANDS:
+        return "dirt"
+    if brand in STREET_ONLY_BRANDS:
         return "street"
     return "unknown"
 

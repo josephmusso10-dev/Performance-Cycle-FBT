@@ -902,14 +902,121 @@ def simulate():
     else:
         # Local fallback if catalog auth is missing.
         sample_catalog = {
+            # --- Helmets: premium ---
             "agv-pista-gp-rr-mono-carbon-helmet": {"name": "AGV Pista GP RR Mono Carbon Helmet", "price": 1679.99},
+            "shoei-x-fifteen-escalate-helmet": {"name": "Shoei X-Fifteen Escalate Helmet", "price": 999.99},
+            "arai-corsair-x-bracket-helmet": {"name": "Arai Corsair-X Bracket Helmet", "price": 969.99},
+            "shoei-rf-1400-arcane-helmet": {"name": "Shoei RF-1400 Arcane Helmet", "price": 649.99},
+            "hjc-rpha-1-senin-helmet": {"name": "HJC RPHA 1 Senin Helmet", "price": 849.99},
+            "shoei-neotec-3-satori-helmet": {"name": "Shoei Neotec 3 Satori Helmet", "price": 899.99},
+            "schuberth-c5-eclipse-helmet": {"name": "Schuberth C5 Eclipse Helmet", "price": 749.99},
+            # --- Helmets: mid ---
+            "agv-k6-s-excite-helmet": {"name": "AGV K6 S Excite Helmet", "price": 499.99},
+            "hjc-rpha-71-mapos-helmet": {"name": "HJC RPHA 71 Mapos Helmet", "price": 449.99},
+            "scorpion-exo-r1-air-corpus-helmet": {"name": "Scorpion EXO-R1 Air Corpus Helmet", "price": 549.99},
+            "icon-airflite-rubatone-helmet": {"name": "Icon Airflite Rubatone Helmet", "price": 250.00},
+            "klim-f5-koroyd-helmet": {"name": "Klim F5 Koroyd Helmet", "price": 549.99},
+            # --- Helmets: entry ---
+            "hjc-i10-robust-helmet": {"name": "HJC i10 Robust Helmet", "price": 179.99},
+            "ls2-stream-ii-lux-helmet": {"name": "LS2 Stream II Lux Helmet", "price": 159.99},
+            "bell-qualifier-dlx-mips-helmet": {"name": "Bell Qualifier DLX MIPS Helmet", "price": 219.99},
+            "icon-airform-conflux-helmet": {"name": "Icon Airform Conflux Helmet", "price": 200.00},
+            # --- Helmets: dirt / off-road ---
+            "fox-v3-rs-mips-motocross-helmet": {"name": "Fox V3 RS MIPS Motocross Helmet", "price": 549.99},
+            "shoei-vfx-evo-pinnacle-offroad-helmet": {"name": "Shoei VFX-EVO Pinnacle Off-Road Helmet", "price": 679.99},
+            "klim-f3-carbon-helmet-ecedot": {"name": "Klim F3 Carbon Helmet", "price": 499.99},
+            # --- Helmet accessories ---
+            "shoei-cwr-f2-pinlock-face-shield": {"name": "Shoei CWR-F2 Pinlock Face Shield", "price": 69.99},
+            "agv-pista-gp-rr-visor-clear": {"name": "AGV Pista GP RR Visor Clear", "price": 149.99},
+            "hjc-rpha-1-cheekpad-set": {"name": "HJC RPHA 1 Cheekpad Set", "price": 49.99},
+            "shoei-neotec-3-pinlock-shield": {"name": "Shoei Neotec 3 Pinlock Shield", "price": 79.99},
+            "arai-corsair-x-faceshield": {"name": "Arai Corsair-X Face Shield", "price": 109.99},
+            "icon-airflite-face-shield-rst-silver": {"name": "Icon Airflite Face Shield RST Silver", "price": 45.00},
+            # --- Jackets ---
             "klim-badlands-pro-jacket": {"name": "Klim Badlands Pro Jacket", "price": 1199.99},
-            "motorex-gear-oil-10w30": {"name": "Motorex Gear Oil 10W30", "price": 20.99},
-            "twin-air-air-filter-for-2024-kawasaki-kx450": {"name": "Twin Air Filter 2024 KX450", "price": 38.95},
+            "alpinestars-gp-tech-v4-leather-jacket": {"name": "Alpinestars GP Tech v4 Leather Jacket", "price": 1299.99},
+            "rev-it-eclipse-2-textile-jacket": {"name": "REV'IT! Eclipse 2 Textile Jacket", "price": 199.99},
+            "dainese-super-speed-4-leather-jacket": {"name": "Dainese Super Speed 4 Leather Jacket", "price": 649.99},
+            "icon-overlord3-mesh-jacket": {"name": "Icon Overlord3 Mesh Jacket", "price": 200.00},
+            "firstgear-adventure-touring-jacket": {"name": "FirstGear Adventure Touring Jacket", "price": 349.99},
+            "fox-legion-off-road-jacket": {"name": "Fox Legion Off-Road Jacket", "price": 259.95},
+            # --- Pants ---
+            "klim-badlands-pro-pants": {"name": "Klim Badlands Pro Pants", "price": 899.99},
+            "alpinestars-missile-v3-leather-pants": {"name": "Alpinestars Missile v3 Leather Pants", "price": 549.99},
+            "rev-it-tornado-3-textile-pants": {"name": "REV'IT! Tornado 3 Textile Pants", "price": 299.99},
+            "dainese-delta-4-leather-pants": {"name": "Dainese Delta 4 Leather Pants", "price": 499.99},
+            "icon-overlord-overpant": {"name": "Icon Overlord Overpant", "price": 175.00},
+            # --- Gloves ---
+            "alpinestars-gp-pro-r4-gloves": {"name": "Alpinestars GP Pro R4 Gloves", "price": 299.99},
+            "dainese-full-metal-7-gloves": {"name": "Dainese Full Metal 7 Gloves", "price": 599.99},
+            "rev-it-sand-4-adventure-gloves": {"name": "REV'IT! Sand 4 Adventure Gloves", "price": 109.99},
+            "klim-badlands-aero-pro-short-gloves": {"name": "Klim Badlands Aero Pro Short Gloves", "price": 89.99},
+            "icon-pursuit-classic-perforated-gloves": {"name": "Icon Pursuit Classic Perforated Gloves", "price": 75.00},
+            "fox-dirtpaw-mx-gloves": {"name": "Fox Dirtpaw MX Gloves", "price": 29.95},
+            # --- Boots ---
+            "alpinestars-supertech-r-boots": {"name": "Alpinestars Supertech R Boots", "price": 499.99},
+            "sidi-crossfire-3-srs-boots": {"name": "Sidi Crossfire 3 SRS Boots", "price": 549.99},
+            "tcx-rt-race-pro-air-boots": {"name": "TCX RT-Race Pro Air Boots", "price": 359.99},
+            "dainese-torque-3-out-boots": {"name": "Dainese Torque 3 Out Boots", "price": 449.99},
+            "icon-el-bajo-boot": {"name": "Icon El Bajo Boot", "price": 200.00},
+            "forma-adventure-low-waterproof-boot": {"name": "Forma Adventure Low WP Boot", "price": 219.99},
+            # --- Communication ---
+            "cardo-packtalk-edge-jbl-single-bluetooth-unit": {"name": "Cardo Packtalk Edge JBL Single", "price": 349.99},
+            "cardo-packtalk-neo-single-bluetooth-unit": {"name": "Cardo Packtalk Neo Single", "price": 249.99},
+            "sena-50s-communication-system-with-harman-kardon-speakers-single-unit": {"name": "Sena 50S Harman Kardon Single", "price": 359.99},
             "sena-30k-hd-communication-system-single-unit": {"name": "Sena 30K HD Communication", "price": 299.00},
+            "cardo-freecom-4x-jbl-single-unit": {"name": "Cardo Freecom 4x JBL Single", "price": 199.99},
+            "cardo-freecom-2x-jbl-single-unit": {"name": "Cardo Freecom 2x JBL Single", "price": 129.99},
+            "cardo-spirit-hd-single-unit": {"name": "Cardo Spirit HD Single", "price": 109.99},
+            "sena-20s-evo-hd-communication-system-single": {"name": "Sena 20S EVO HD Single", "price": 259.99},
+            # --- Protection / armor ---
+            "alpinestars-nucleon-kr-1-back-protector": {"name": "Alpinestars Nucleon KR-1 Back Protector", "price": 149.99},
+            "dainese-pro-armor-chest-protector": {"name": "Dainese Pro-Armor Chest Protector", "price": 69.99},
+            "forcefield-pro-l2k-evo-back-protector": {"name": "Forcefield Pro L2K Evo Back Protector", "price": 199.99},
+            "rev-it-seeflex-rv12-knee-protector": {"name": "REV'IT! SEEFLEX RV12 Knee Protector", "price": 49.99},
+            # --- Backpacks ---
             "kriega-r20-backpack": {"name": "Kriega R20 Backpack", "price": 179.99},
+            "ogio-mach-5-backpack": {"name": "OGIO Mach 5 Backpack", "price": 259.99},
+            "klim-nac-pak-backpack": {"name": "Klim NAC Pak Backpack", "price": 249.99},
+            # --- Hydration ---
+            "kriega-hydrapak-hydration-reservoir-3l": {"name": "Kriega Hydrapak Reservoir 3L", "price": 44.99},
+            "klim-hydradri-hydration-pack": {"name": "Klim Hydradri Hydration Pack", "price": 69.99},
+            # --- Luggage ---
+            "kriega-os-12-adventure-tail-bag": {"name": "Kriega OS-12 Adventure Tail Bag", "price": 119.99},
+            "nelson-rigg-commuter-lite-tank-bag": {"name": "Nelson-Rigg Commuter Lite Tank Bag", "price": 64.95},
+            "kriega-us20-drypack": {"name": "Kriega US-20 Drypack", "price": 134.99},
+            "mosko-moto-nomax-fender-bag": {"name": "Mosko Moto Nomax Fender Bag", "price": 89.00},
+            # --- Tires ---
             "dunlop-sportmax-q5-sportbike-tires": {"name": "Dunlop Sportmax Q5 Tires", "price": 354.99},
+            "michelin-pilot-road-6-touring-tires": {"name": "Michelin Pilot Road 6 Tires", "price": 289.99},
+            "pirelli-scorpion-trail-ii-adventure-tire": {"name": "Pirelli Scorpion Trail II Adventure Tire", "price": 199.99},
+            "dunlop-geomax-mx34-motocross-tire": {"name": "Dunlop Geomax MX34 Motocross Tire", "price": 89.99},
+            # --- Brakes ---
             "ebc-fa103-brake-pad": {"name": "EBC FA103 Brake Pad", "price": 40.95},
+            "galfer-hh-sintered-brake-rotor": {"name": "Galfer HH Sintered Brake Rotor", "price": 189.99},
+            "vesrah-rjl-race-brake-pad": {"name": "Vesrah RJL Race Brake Pad", "price": 59.95},
+            # --- Chain / drivetrain ---
+            "rk-520-max-x-gold-x-ring-chain": {"name": "RK 520 MAX-X Gold X-Ring Chain", "price": 159.99},
+            "renthal-ultralight-rear-sprocket": {"name": "Renthal Ultralight Rear Sprocket", "price": 69.99},
+            "motul-chain-lube-factory-line": {"name": "Motul Chain Lube Factory Line", "price": 15.99},
+            "maxima-chain-wax": {"name": "Maxima Chain Wax", "price": 11.99},
+            # --- Oil / fluids ---
+            "motorex-gear-oil-10w30": {"name": "Motorex Gear Oil 10W30", "price": 20.99},
+            "motul-7100-10w40-synthetic-oil": {"name": "Motul 7100 10W40 Synthetic Oil", "price": 54.99},
+            "bel-ray-fork-oil-10w": {"name": "Bel-Ray Fork Oil 10W", "price": 16.99},
+            "maxima-premium-transmission-oil": {"name": "Maxima Premium Transmission Oil", "price": 12.99},
+            # --- Air filters ---
+            "twin-air-air-filter-for-2024-kawasaki-kx450": {"name": "Twin Air Filter 2024 KX450", "price": 38.95},
+            "k-and-n-air-filter-yamaha-yz250f": {"name": "K&N Air Filter Yamaha YZ250F", "price": 49.99},
+            "bmc-air-filter-ducati-panigale-v4": {"name": "BMC Air Filter Ducati Panigale V4", "price": 99.99},
+            # --- Parts / consumables ---
+            "ngk-iridium-spark-plug": {"name": "NGK Iridium Spark Plug", "price": 12.99},
+            "yuasa-ytx14-bs-battery": {"name": "Yuasa YTX14-BS Battery", "price": 129.99},
+            "all-balls-racing-wheel-bearing-kit": {"name": "All Balls Racing Wheel Bearing Kit", "price": 39.99},
+            "moose-racing-stator": {"name": "Moose Racing Stator", "price": 159.99},
+            "tusk-clutch-lever-assembly": {"name": "Tusk Clutch Lever Assembly", "price": 24.99},
+            "cv4-performance-radiator-hose-kit": {"name": "CV4 Performance Radiator Hose Kit", "price": 89.99},
+            # --- Misc / general ---
             "ogio-head-case-helmet-bag": {"name": "OGIO Head Case Helmet Bag", "price": 89.99},
             "pinlock-earplug-set-w-case": {"name": "Pinlock Earplug Set", "price": 24.99},
         }

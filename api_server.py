@@ -105,6 +105,58 @@ VEHICLE_SPECIFIC_TERMS = {
     "harley", "davidson", "goldwing", "indian", "polaris", "can-am",
     "spyder", "ryker", "slingshot",
 }
+
+# --- Helmet price tiers and matching comm systems ---
+# Premium: flagship race / top-of-line helmets
+HELMET_PREMIUM_KEYWORDS = [
+    "pista", "x-fifteen", "x-14", "supertech-r10", "corsair",
+    "rf-1400", "rpha-1", "rpha 1", "rpha-11", "rpha-12",
+    "neotec-3", "neotec-ii", "gt-air-3", "gt-air3",
+    "c5", "schuberth-c5", "schuberth-e2",
+    "6d-atr", "carbon",
+]
+# Mid-range
+HELMET_MID_KEYWORDS = [
+    "k6", "rpha", "rf-", "z-8", "gt-air", "neotec",
+    "qualifier-dlx", "star-dlx", "srt", "race-r",
+    "supertech", "scorpion-exo-r1", "exo-r1",
+    "schuberth-c4", "schuberth-e1",
+    "klim-f5", "klim-krios",
+    "icon-airflite", "icon-airframe",
+    "arai",
+]
+# Everything else is entry-level
+
+COMM_PREMIUM = [
+    "cardo-packtalk-pro-jbl-single-bluetooth-unit",
+    "cardo-packtalk-edge-jbl-single-bluetooth-unit",
+    "cardo-packtalk-edge-jbl-dual-bluetooth-unit",
+    "sena-60s-communication-system-with-harman-kardon-speakers-single-unit",
+    "sena-60s-communication-system-with-harman-kardon-speakers-dual-unit",
+    "sena-50s-communication-system-with-harman-kardon-speakers-single-unit",
+    "sena-50r-communication-system-with-harman-kardon-speakers-single-unit",
+    "sena-50c-harman-kardon-mesh-intercom-camera",
+]
+COMM_MID = [
+    "cardo-packtalk-neo-single-bluetooth-unit",
+    "cardo-packtalk-neo-dual-bluetooth-unit",
+    "sena-50s-communication-system-with-harman-kardon-speakers-single-unit",
+    "sena-50r-communication-system-with-harman-kardon-speakers-single-unit",
+    "sena-30k-hd-communication-system-single-unit",
+    "sena-30k-hd-communication-system-dual-pack",
+    "cardo-freecom-4x-jbl-single-unit",
+    "cardo-freecom-4x-jbl-dual-pack",
+    "sena-20s-evo-hd-communication-system-single",
+]
+COMM_ENTRY = [
+    "cardo-freecom-2x-jbl-single-unit",
+    "cardo-freecom-2x-jbl-dual-pack",
+    "cardo-spirit-hd-single-unit",
+    "cardo-spirit-hd-dual-pack",
+    "sena-20s-evo-hd-communication-system-single",
+    "ls2-focal-bluetooth-intercom-system",
+    "hjc-smart-20b-bluetooth-headset",
+]
 RIDING_TYPE_RULES = {
     "dirt": [
         "dirt", "mx", "motocross", "offroad", "off-road", "enduro",
@@ -315,6 +367,32 @@ def _is_vehicle_specific(slug: str) -> bool:
     return any(term in text for term in VEHICLE_SPECIFIC_TERMS)
 
 
+def _detect_helmet_tier(slug: str) -> str:
+    text = _normalize_slug_text(slug)
+    if any(kw in text for kw in HELMET_PREMIUM_KEYWORDS):
+        return "premium"
+    if any(kw in text for kw in HELMET_MID_KEYWORDS):
+        return "mid"
+    return "entry"
+
+
+def _pick_tiered_comm(helmet_slug: str, selected_ids: set) -> str:
+    tier = _detect_helmet_tier(helmet_slug)
+    if tier == "premium":
+        tier_order = [COMM_PREMIUM, COMM_MID, COMM_ENTRY]
+    elif tier == "mid":
+        tier_order = [COMM_MID, COMM_PREMIUM, COMM_ENTRY]
+    else:
+        tier_order = [COMM_ENTRY, COMM_MID, COMM_PREMIUM]
+
+    available = set(_GLOBAL_REC_BY_TYPE.get("communication", []))
+    for tier_list in tier_order:
+        for cid in tier_list:
+            if cid in available and cid not in selected_ids and not _is_vehicle_specific(cid):
+                return cid
+    return ""
+
+
 def _sort_by_priority(recommendations: list) -> list:
     return sorted(
         recommendations,
@@ -494,10 +572,19 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
                 continue
         filtered.append(rec)
 
-    # Prefer 3 different recommendation types first.
+    # For helmets, always reserve one slot for a price-tiered comm system.
     selected = []
     selected_ids = set()
     seen_types = set()
+
+    if source_type == "helmet":
+        comm_id = _pick_tiered_comm(product_id, selected_ids)
+        if comm_id:
+            selected.append({"id": comm_id, "label": "Pairs with your helmet", "priority": "Secondary"})
+            selected_ids.add(comm_id)
+            seen_types.add("communication")
+
+    # Fill remaining slots preferring distinct types.
     for rec in filtered:
         rid = rec.get("id")
         if not rid or rid in selected_ids:
@@ -511,7 +598,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
             return selected
 
-    # If we don't have 3 types, supplement from global candidates.
+    # Supplement from global candidates by complementary type.
     if len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:
         desired_types = RUNTIME_COMPLEMENTARY_TYPES.get(source_type, [])
         for desired_type in desired_types:
@@ -526,8 +613,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
             if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
                 break
 
-    # For helmets, fill remaining slots with same-brand helmet accessories
-    # rather than pulling unrelated global items.
+    # For helmets, fill remaining slots with same-brand helmet accessories.
     if source_type == "helmet" and len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:
         ha_candidates = _GLOBAL_REC_BY_TYPE.get("helmet_accessory", [])
         for rid in ha_candidates:
@@ -542,21 +628,6 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
             selected_ids.add(rid)
             if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
                 break
-
-    # For helmets, also try communication devices (non-vehicle-specific).
-    if source_type == "helmet" and "communication" not in seen_types and len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:
-        comm_candidates = _GLOBAL_REC_BY_TYPE.get("communication", [])
-        for rid in comm_candidates:
-            if rid in selected_ids or rid == product_id:
-                continue
-            if _is_vehicle_specific(rid):
-                continue
-            if source_riding == "street" and source_street_subtype == "race" and _detect_street_subtype(rid) == "touring":
-                continue
-            selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})
-            selected_ids.add(rid)
-            seen_types.add("communication")
-            break
 
     # Try any other unseen type if desired map didn't fill all slots.
     while len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:

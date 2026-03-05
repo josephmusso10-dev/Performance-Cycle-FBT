@@ -481,10 +481,29 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
             if rec_brand == "alpinestars":
                 return rid
 
+    # First pass: prefer same brand
     for rid in candidates:
-        if rid in selected_ids:
+        if rid in selected_ids or rid == source_product_id:
             continue
-        if rid == source_product_id:
+        if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
+            continue
+        rec_brand = _extract_brand_token(rid)
+        same_brand = source_brand and rec_brand and source_brand == rec_brand
+        if not same_brand:
+            continue
+        if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:
+            continue
+        if source_type in GEAR_TYPES and rec_type in PARTS_TYPES:
+            continue
+        if source_type == "backpack" and rec_type not in BACKPACK_ALLOWED_TYPES:
+            continue
+        if source_type == "backpack" and rec_type == "backpack":
+            continue
+        return rid
+
+    # Second pass: any brand, with riding type filter
+    for rid in candidates:
+        if rid in selected_ids or rid == source_product_id:
             continue
         if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
             continue
@@ -500,10 +519,6 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
             continue
         if source_type == "backpack" and rec_type == "backpack":
             continue
-        if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants", "gloves"}:
-            rec_brand = _extract_brand_token(rid)
-            if source_brand and rec_brand and source_brand != rec_brand:
-                continue
         if source_type == "helmet" and rec_type in {"helmet", "helmet_accessory"}:
             rec_brand = _extract_brand_token(rid)
             if source_brand and rec_brand and source_brand != rec_brand:
@@ -513,13 +528,43 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
 
 
 def _pick_global_candidate_any(source_product_id: str, source_type: str, source_brand: str, source_riding: str, source_street_subtype: str, selected_ids: set, used_types: set) -> tuple:
+    # First pass: prefer same brand for gear-to-gear
+    if source_type in GEAR_TYPES and source_brand:
+        for rec_type, candidates in _GLOBAL_REC_BY_TYPE.items():
+            if rec_type in used_types or rec_type not in GEAR_TYPES:
+                continue
+            for rid in candidates:
+                if rid in selected_ids or rid == source_product_id:
+                    continue
+                if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
+                    continue
+                if source_riding in {"street", "dirt"} and _detect_riding_type(rid) != source_riding:
+                    continue
+                if source_riding == "street" and source_street_subtype == "race" and _detect_street_subtype(rid) == "touring":
+                    continue
+                if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:
+                    continue
+                if source_type in GEAR_TYPES and rec_type in PARTS_TYPES:
+                    continue
+                if source_type == "backpack" and rec_type not in BACKPACK_ALLOWED_TYPES:
+                    continue
+                if source_type == "backpack" and rec_type == "backpack":
+                    continue
+                if source_type == "helmet" and rec_type in {"helmet", "helmet_accessory"}:
+                    rec_brand = _extract_brand_token(rid)
+                    if source_brand and rec_brand and source_brand != rec_brand:
+                        continue
+                rec_brand = _extract_brand_token(rid)
+                if rec_brand and rec_brand != source_brand:
+                    continue
+                return rid, rec_type
+
+    # Second pass: any brand
     for rec_type, candidates in _GLOBAL_REC_BY_TYPE.items():
         if rec_type in used_types:
             continue
         for rid in candidates:
-            if rid in selected_ids:
-                continue
-            if rid == source_product_id:
+            if rid in selected_ids or rid == source_product_id:
                 continue
             if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
                 continue
@@ -535,10 +580,6 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                 continue
             if source_type == "backpack" and rec_type == "backpack":
                 continue
-            if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants", "gloves"}:
-                rec_brand = _extract_brand_token(rid)
-                if source_brand and rec_brand and source_brand != rec_brand:
-                    continue
             if source_type == "helmet" and rec_type in {"helmet", "helmet_accessory"}:
                 rec_brand = _extract_brand_token(rid)
                 if source_brand and rec_brand and source_brand != rec_brand:
@@ -569,31 +610,25 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         rec_street_subtype = _detect_street_subtype(rid)
         if not _is_vehicle_specific(product_id) and _is_vehicle_specific(rid):
             continue
-        if source_riding in {"street", "dirt"} and rec_riding != source_riding:
+        rec_brand = _extract_brand_token(rid)
+        same_brand = source_brand and rec_brand and source_brand == rec_brand
+        # Riding type filter: allow same-brand items through even if "unknown"
+        if source_riding in {"street", "dirt"} and rec_riding != source_riding and not same_brand:
             continue
-        if source_riding == "street" and source_street_subtype == "race" and rec_street_subtype == "touring":
+        if source_riding == "street" and source_street_subtype == "race" and rec_street_subtype == "touring" and not same_brand:
             continue
 
-        # Hard rule: parts/consumables should not recommend riding gear.
         if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:
             continue
-        # Symmetric safety: riding gear should not recommend parts/consumables.
         if source_type in GEAR_TYPES and rec_type in PARTS_TYPES:
             continue
-        # Backpack should recommend backpack-adjacent items only.
         if source_type == "backpack" and rec_type not in BACKPACK_ALLOWED_TYPES:
             continue
         if source_type == "backpack" and rec_type == "backpack":
             continue
 
-        # Brand consistency for apparel-to-apparel recommendations.
-        if source_type in {"jacket", "pants"} and rec_type in {"jacket", "pants", "gloves"}:
-            rec_brand = _extract_brand_token(rid)
-            if source_brand and rec_brand and source_brand != rec_brand:
-                continue
-        # Brand consistency for helmets and fit-sensitive helmet products.
+        # Helmet accessories must always match helmet brand (fit-sensitive).
         if source_type == "helmet" and rec_type in {"helmet", "helmet_accessory"}:
-            rec_brand = _extract_brand_token(rid)
             if source_brand and rec_brand and source_brand != rec_brand:
                 continue
         filtered.append(rec)
@@ -611,6 +646,26 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
             seen_types.add("communication")
 
     # Fill remaining slots preferring distinct types.
+    # For gear sources, prefer same-brand gear first, then fall back to any brand.
+    if source_type in GEAR_TYPES and source_brand:
+        for rec in filtered:
+            rid = rec.get("id")
+            if not rid or rid in selected_ids:
+                continue
+            rec_type = _detect_product_type(rid)
+            if rec_type in seen_types:
+                continue
+            if rec_type in GEAR_TYPES:
+                rec_brand = _extract_brand_token(rid)
+                if rec_brand and rec_brand != source_brand:
+                    continue
+            selected.append(rec)
+            selected_ids.add(rid)
+            seen_types.add(rec_type)
+            if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
+                return selected
+
+    # Second pass: fill remaining with any brand (for types not yet filled).
     for rec in filtered:
         rid = rec.get("id")
         if not rid or rid in selected_ids:

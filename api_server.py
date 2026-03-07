@@ -59,7 +59,7 @@ PER_PRODUCT_RECOMMENDATION_LIMIT = 3
 
 # Keep this lightweight/type-focused for runtime filtering.
 PRODUCT_TYPE_RULES = [
-    ("helmet_accessory", ["visor", "face-shield", "faceshield", "shield", "pinlock", "cheekpad", "cheek-pad", "cheek pad", "chin curtain", "curtain"]),
+    ("helmet_accessory", ["visor", "face-shield", "faceshield", "shield", "pinlock", "cheekpad", "cheek-pad", "cheek pad", "chin curtain", "curtain", "audio-kit", "audio kit", "helmet-kit", "helmet kit"]),
     ("helmet", ["helmet"]),
     ("jacket", ["jacket", "coat", "parka"]),
     ("pants", ["pant", "trouser", "bibs"]),
@@ -92,7 +92,7 @@ RUNTIME_COMPLEMENTARY_TYPES = {
     "backpack": ["hydration", "luggage"],
     "hydration": ["backpack", "luggage"],
     "luggage": ["backpack", "hydration"],
-    "communication": ["helmet", "gloves"],
+    "communication": ["helmet", "gloves", "jacket"],
     "protection": ["jacket", "pants", "gloves"],
 }
 GEAR_TYPES = {
@@ -164,6 +164,8 @@ RIDING_TYPE_RULES = {
         "sx", "fx", "kawasaki kx", "yz", "crf", "rmz", "ktm exc", "husqvarna fe",
         "dirtpaw", "patrol", "kinetic", "f-16", "f 16",
         "moto-9", "moto 9", "formula-cc",
+        "6d",
+        "gate", "moto 10", "lithium",
     ],
     "street": [
         "street", "sportbike", "supersport", "touring", "commuter",
@@ -180,10 +182,18 @@ RIDING_TYPE_RULES = {
         "cortech", "dainese", "noru", "highway 21",
         "stunt iii",
         "shoei", "agv", "arai", "schuberth", "nolan", "biltwell", "gmax",
+        "kyt",
+        "i 10", "i 30", "i 31", "i 80", "i 91", "i 100", "i11", "c 10", "v10", "f 71",
+        "scout", "srt", "mag 9", "qualifier",
+        "stream", "citation", "dragon", "explorer",
+        "hornet",
+        "broozer", "custom 500", "pit boss", "recon", "race star",
+        "forma", "gaerne", "tcx", "sidi",
     ],
 }
 DIRT_ONLY_BRANDS = {
     "fly", "fox", "fasthouse", "troy", "seven", "shift", "thor", "one", "leatt",
+    "6d",
 }
 STREET_ONLY_BRANDS = {
     "dainese", "cortech", "noru", "highway", "rst", "olympia", "firstgear",
@@ -597,6 +607,9 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     source_type = _detect_product_type(product_id)
     source_brand = _extract_brand_token(product_id)
     source_riding = _detect_riding_type(product_id)
+    # Helmets and boots with unknown riding type default to street for filtering.
+    if source_type in {"helmet", "boots"} and source_riding == "unknown":
+        source_riding = "street"
     source_street_subtype = _detect_street_subtype(product_id)
     ordered = _sort_by_priority(recommendations)
 
@@ -645,8 +658,47 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
             selected_ids.add(comm_id)
             seen_types.add("communication")
 
+    comm_only_brand = source_type == "communication"
+
+    # For comm systems, build from global pool with brand diversity
+    # and rotation so different comm products recommend different helmets.
+    if comm_only_brand:
+        desired_types = RUNTIME_COMPLEMENTARY_TYPES.get(source_type, [])
+        seen_brands_comm = set()
+        offset = hash(product_id) % 50
+        for desired_type in desired_types:
+            if desired_type in seen_types:
+                continue
+            candidates = _GLOBAL_REC_BY_TYPE.get(desired_type, [])
+            viable = []
+            for rid in candidates:
+                if rid in selected_ids or rid == product_id:
+                    continue
+                if _is_vehicle_specific(rid):
+                    continue
+                rt = _detect_riding_type(rid)
+                if source_riding in {"street", "dirt"} and rt != source_riding:
+                    continue
+                viable.append(rid)
+            if not viable:
+                continue
+            rotated = viable[offset % len(viable):] + viable[:offset % len(viable)]
+            for rid in rotated:
+                rec_brand = _extract_brand_token(rid)
+                if rec_brand in seen_brands_comm:
+                    continue
+                selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})
+                selected_ids.add(rid)
+                seen_types.add(desired_type)
+                if rec_brand:
+                    seen_brands_comm.add(rec_brand)
+                break
+            if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
+                return selected
+        return selected
+
     # Fill remaining slots preferring distinct types.
-    # For gear sources, prefer same-brand gear first, then fall back to any brand.
+    # For gear sources, prefer same-brand gear first.
     if source_type in GEAR_TYPES and source_brand:
         for rec in filtered:
             rid = rec.get("id")
@@ -665,7 +717,8 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
             if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
                 return selected
 
-    # Second pass: fill remaining with any brand (for types not yet filled).
+    # Second pass: fill remaining with any brand, enforcing brand diversity.
+    seen_brands = {_extract_brand_token(r["id"]) for r in selected if _extract_brand_token(r.get("id", ""))}
     for rec in filtered:
         rid = rec.get("id")
         if not rid or rid in selected_ids:
@@ -673,9 +726,14 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         rec_type = _detect_product_type(rid)
         if rec_type in seen_types:
             continue
+        rec_brand = _extract_brand_token(rid)
+        if comm_only_brand and rec_brand in seen_brands:
+            continue
         selected.append(rec)
         selected_ids.add(rid)
         seen_types.add(rec_type)
+        if rec_brand:
+            seen_brands.add(rec_brand)
         if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
             return selected
 

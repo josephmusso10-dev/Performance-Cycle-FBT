@@ -554,7 +554,9 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
             continue
         return rid
 
-    # Second pass: any brand, with riding type filter
+    # Second pass: any brand, with riding type filter. Collect all viable and
+    # rotate by source product id so different products get different recs.
+    viable = []
     for rid in candidates:
         if rid in selected_ids or rid == source_product_id:
             continue
@@ -588,7 +590,10 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
                 continue
         if _is_womens_product(rid) != _is_womens_product(source_product_id):
             continue
-        return rid
+        viable.append(rid)
+    if viable:
+        offset = hash(source_product_id) % len(viable)
+        return viable[offset]
     return ""
 
 

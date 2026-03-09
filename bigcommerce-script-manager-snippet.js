@@ -1,5 +1,7 @@
 /*
   BigCommerce Script Manager snippet for Performance Cycle FBT widget.
+  Shows "Frequently Bought Together" in the mini cart (slide-out/dropdown on the right).
+
   Usage:
   1) In BigCommerce Admin -> Storefront -> Script Manager -> Create Script
   2) Location: Footer
@@ -10,41 +12,44 @@
 (function () {
   var API_URL = "https://performance-cycle-mb1rd1mcs-josephmusso10-devs-projects.vercel.app";
 
-  function isCartPage() {
-    var p = window.location.pathname.toLowerCase();
-    return p.indexOf("/cart") === 0 || p.indexOf("/cart.php") === 0;
+  // Selectors for the mini cart ("Your Cart" slide-out on the right when you add to cart).
+  // First match wins. Add your theme's container if the widget doesn't appear.
+  var MINI_CART_SELECTORS = [
+    "[data-cart-preview]",
+    ".cart-preview",
+    ".previewCart",
+    ".minicart",
+    ".cart-drawer",
+    ".drawer--right",
+    ".dropdown--cart .dropdown-pane",
+    ".dropdown--cart .dropdown-menu",
+    ".navUser-action--cart .dropdown-menu",
+    ".header-cart .dropdown-pane",
+    ".cart-dropdown .dropdown-pane",
+    ".mini-cart",
+    "#cart-preview-dropdown",
+    ".modal-body[data-cart]",
+  ];
+
+  function getMiniCartContainer() {
+    for (var i = 0; i < MINI_CART_SELECTORS.length; i++) {
+      var el = document.querySelector(MINI_CART_SELECTORS[i]);
+      if (el) return el;
+    }
+    return null;
   }
 
   function ensureContainer() {
     var existing = document.getElementById("fbt-widget");
     if (existing) return existing;
 
+    var miniCart = getMiniCartContainer();
+    if (!miniCart) return null;
+
     var el = document.createElement("div");
     el.id = "fbt-widget";
-
-    // Place OUTSIDE action/form areas so checkout button behavior is untouched.
-    var cartActions = document.querySelector(".cart-actions, .cart-totals, .cart-checkout");
-    if (cartActions && cartActions.parentNode) {
-      cartActions.insertAdjacentElement("afterend", el);
-      return el;
-    }
-
-    // Best-effort fallback placement across Stencil variants
-    var targets = [
-      ".cart-content",
-      ".page-content",
-      ".cart",
-      "main",
-      "body",
-    ];
-    for (var i = 0; i < targets.length; i++) {
-      var t = document.querySelector(targets[i]);
-      if (t) {
-        t.appendChild(el);
-        return el;
-      }
-    }
-    document.body.appendChild(el);
+    // Append at end so FBT appears below Subtotal / Grand total / CHECK OUT NOW
+    miniCart.appendChild(el);
     return el;
   }
 
@@ -96,7 +101,7 @@
     return new Promise(function (resolve, reject) {
       if (window.FBTWidget) return resolve();
       var s = document.createElement("script");
-      s.src = API_URL + "/widget/fbt-widget.js?v=4";
+      s.src = API_URL + "/widget/fbt-widget.js?v=5";
       s.async = true;
       s.onload = function () { resolve(); };
       s.onerror = reject;
@@ -105,8 +110,11 @@
   }
 
   function init() {
-    if (!isCartPage()) return;
-    ensureContainer();
+    var miniCart = getMiniCartContainer();
+    if (!miniCart) return;
+
+    var container = ensureContainer();
+    if (!container) return;
     Promise.all([loadWidgetScript(), getCartSlugs()]).then(function (res) {
       var slugs = res[1] || [];
       if (!window.FBTWidget) return;
@@ -115,10 +123,35 @@
         cartProductIds: slugs,
         containerId: "fbt-widget",
         title: "Frequently Bought Together",
-        showAddButton: false, // non-invasive mode on cart page
-        // If no catalog is passed, widget falls back to slug IDs.
-        onAddToCart: null
+        showAddButton: false,
+        onAddToCart: null,
+        layout: "minicart",
+        theme: {
+          text: "#333",
+          muted: "#6b7280",
+          border: "#e5e7eb",
+          accent: "#b91c1c"
+        }
       });
+      // When mini cart is visible, refresh recommendations (e.g. after add-to-cart)
+      if (miniCart && window.IntersectionObserver) {
+        var widget = document.getElementById("fbt-widget");
+        if (widget) {
+          var io = new IntersectionObserver(
+            function (entries) {
+              entries.forEach(function (entry) {
+                if (entry.isIntersecting && window.FBTWidget) {
+                  getCartSlugs().then(function (newSlugs) {
+                    window.FBTWidget.refresh(newSlugs);
+                  });
+                }
+              });
+            },
+            { root: null, threshold: 0.1 }
+          );
+          io.observe(widget);
+        }
+      }
     });
   }
 

@@ -26,8 +26,9 @@
     maxRecommendations: 6,
     title: 'Frequently Bought Together',
     showAddButton: true,
-    productUrlBase: '', // Optional, e.g. "https://performancecycle.com"
-    productUrlPattern: '/{slug}/', // Performance Cycle storefront product URL pattern
+    layout: '', // 'minicart' = compact list for right-side cart drawer
+    productUrlBase: '',
+    productUrlPattern: '/{slug}/',
     theme: {
       border: '#e5e5e5',
       text: '#222',
@@ -38,9 +39,10 @@
       radius: '3px',
       headingSize: '1.15rem',
       cardNameSize: '0.87rem',
-      buttonTextColor: '#fff'
+      buttonTextColor: '#fff',
+      accent: '#b91c1c' // Performance Cycle red accent for links
     },
-    onAddToCart: null,  // Optional: (productId) => {} - called when user clicks add
+    onAddToCart: null,
     emptyMessage: 'Add items to your cart to see recommendations.',
     loadingMessage: 'Loading recommendations...',
   };
@@ -71,6 +73,24 @@
     const image = p.image || '';
     const url = getProductUrl(id, catalog, cfg);
     const price = p.price ? `$${parseFloat(p.price).toFixed(2)}` : '';
+    const isMinicart = cfg.layout === 'minicart';
+
+    if (isMinicart) {
+      return `
+        <div class="fbt-product fbt-product--minicart" data-id="${id}">
+          <a href="${url}" class="fbt-product-link">
+            <div class="fbt-product-img-wrap">
+              ${image ? `<img src="${image}" alt="${name}" class="fbt-product-img">` : '<span class="fbt-product-img fbt-product-img--placeholder"></span>'}
+            </div>
+            <div class="fbt-product-info">
+              <span class="fbt-product-name">${escapeHtml(name)}</span>
+              ${price ? `<span class="fbt-product-price">${price}</span>` : ''}
+            </div>
+          </a>
+          <a href="${url}" class="fbt-view-link">View Product</a>
+        </div>
+      `;
+    }
 
     const ctaHtml = cfg.showAddButton
       ? `<button type="button" class="fbt-add-btn" data-id="${id}">Add to Cart</button>`
@@ -80,7 +100,7 @@
       <div class="fbt-product" data-id="${id}">
         <a href="${url}" class="fbt-product-link">
           ${image ? `<img src="${image}" alt="${name}" class="fbt-product-img">` : ''}
-          <div class="fbt-product-info">
+        <div class="fbt-product-info">
             <span class="fbt-product-name">${escapeHtml(name)}</span>
             ${label ? `<span class="fbt-product-label">${escapeHtml(label)}</span>` : ''}
             ${price ? `<span class="fbt-product-price">${price}</span>` : ''}
@@ -169,6 +189,20 @@
       @media (max-width: 640px) {
         .fbt-products { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
       }
+      /* Minicart layout: Related Products–style vertical cards */
+      .fbt-widget--minicart { padding: 1rem 0 0.5rem; border-top: 1px solid var(--fbt-border); }
+      .fbt-widget--minicart .fbt-title { font-size: 1rem; margin: 0 0 0.75rem; font-weight: 700; color: var(--fbt-text); letter-spacing: 0; }
+      .fbt-widget--minicart .fbt-products { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+      .fbt-product--minicart { display: flex; flex-direction: column; background: var(--fbt-bg); }
+      .fbt-product--minicart .fbt-product-link { display: flex; flex-direction: column; text-decoration: none; color: inherit; }
+      .fbt-product--minicart .fbt-product-img-wrap { width: 100%; aspect-ratio: 1; overflow: hidden; background: #f5f5f5; display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem; }
+      .fbt-product--minicart .fbt-product-img { width: 100%; height: 100%; object-fit: contain; }
+      .fbt-product--minicart .fbt-product-img--placeholder { width: 100%; height: 100%; background: var(--fbt-border); }
+      .fbt-product--minicart .fbt-product-info { padding: 0; min-height: 0; }
+      .fbt-product--minicart .fbt-product-name { display: block; font-size: 0.82rem; font-weight: 700; line-height: 1.3; color: var(--fbt-text); margin-bottom: 0.25rem; }
+      .fbt-product--minicart .fbt-product-price { display: block; font-size: 0.82rem; font-weight: 700; color: var(--fbt-text); margin-bottom: 0.5rem; }
+      .fbt-product--minicart .fbt-view-link { display: block; text-align: center; padding: 0.4rem 0.5rem; border: 1px solid var(--fbt-border); border-radius: var(--fbt-radius); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; text-decoration: none; color: var(--fbt-text); background: #fff; margin-top: auto; }
+      .fbt-product--minicart .fbt-view-link:hover { background: #f5f5f5; }
     `;
     document.head.appendChild(style);
   }
@@ -194,6 +228,7 @@
       setVar('--fbt-radius', theme.radius);
       setVar('--fbt-heading-size', theme.headingSize);
       setVar('--fbt-card-name-size', theme.cardNameSize);
+      setVar('--fbt-accent', theme.accent);
     }
 
     function hydrateCatalogForRecommendations(recs) {
@@ -248,8 +283,9 @@
           if (!recs) return;
 
           const toRec = r => (typeof r === 'object' && r.id ? r : { id: r, label: '' });
+          const layoutClass = config.layout === 'minicart' ? ' fbt-widget--minicart' : '';
           const html = `
-            <div class="fbt-widget">
+            <div class="fbt-widget${layoutClass}">
               <h3 class="fbt-title">${config.title}</h3>
               <div class="fbt-products">
                 ${recs.map(r => renderProduct(toRec(r), config.productCatalog, config)).join('')}

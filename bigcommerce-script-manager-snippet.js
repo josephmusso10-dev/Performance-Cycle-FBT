@@ -13,22 +13,32 @@
   var API_URL = "https://performance-cycle-mb1rd1mcs-josephmusso10-devs-projects.vercel.app";
 
   // Selectors for the mini cart ("Your Cart" slide-out on the right when you add to cart).
-  // First match wins. Add your theme's container if the widget doesn't appear.
+  // First match wins. Performance Cycle theme uses .openCartSidebar (may contain an iframe).
   var MINI_CART_SELECTORS = [
+    ".openCartSidebar",
     "[data-cart-preview]",
+    "[data-cart]",
     ".cart-preview",
     ".previewCart",
+    ".preview-cart",
     ".minicart",
+    ".mini-cart",
     ".cart-drawer",
+    ".cart-drawer__content",
     ".drawer--right",
+    ".drawer--cart",
+    ".sidebar-cart",
+    ".cart-sidebar",
     ".dropdown--cart .dropdown-pane",
     ".dropdown--cart .dropdown-menu",
     ".navUser-action--cart .dropdown-menu",
     ".header-cart .dropdown-pane",
     ".cart-dropdown .dropdown-pane",
-    ".mini-cart",
+    ".cart-dropdown__content",
     "#cart-preview-dropdown",
     ".modal-body[data-cart]",
+    ".offcanvas-cart",
+    ".js-cart-preview",
   ];
 
   function getMiniCartContainer() {
@@ -48,7 +58,13 @@
 
     var el = document.createElement("div");
     el.id = "fbt-widget";
-    // Append at end so FBT appears below Subtotal / Grand total / CHECK OUT NOW
+    el.style.cssText = "pointer-events: none;";
+    if (!document.getElementById("fbt-widget-pointer-events-style")) {
+      var style = document.createElement("style");
+      style.id = "fbt-widget-pointer-events-style";
+      style.textContent = "#fbt-widget * { pointer-events: auto; }";
+      document.head.appendChild(style);
+    }
     miniCart.appendChild(el);
     return el;
   }
@@ -115,6 +131,7 @@
 
     var container = ensureContainer();
     if (!container) return;
+    window._fbtInitialized = true;
     Promise.all([loadWidgetScript(), getCartSlugs()]).then(function (res) {
       var slugs = res[1] || [];
       if (!window.FBTWidget) return;
@@ -155,10 +172,25 @@
     });
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-  } else {
+  var retryCount = 0;
+  var maxRetries = 5;
+
+  function tryInit() {
+    if (window._fbtInitialized) return;
+    if (retryCount > maxRetries) return;
     init();
+    if (!window._fbtInitialized && retryCount < maxRetries) {
+      retryCount++;
+      setTimeout(tryInit, 600);
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () {
+      tryInit();
+    });
+  } else {
+    tryInit();
   }
 })();
 

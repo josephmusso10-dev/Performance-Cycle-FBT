@@ -62,6 +62,7 @@ PRODUCT_TYPE_RULES = [
     ("care", ["helmet-care", "helmet care", "windshield-clean", "windshield clean", "visor-clean", "visor clean", "helmet-clean", "helmet clean"]),
     ("helmet_accessory", ["visor", "face-shield", "faceshield", "shield", "pinlock", "cheekpad", "cheek-pad", "cheek pad", "chin curtain", "curtain", "audio-kit", "audio kit", "helmet-kit", "helmet kit"]),
     ("helmet", ["helmet"]),
+    ("jersey", ["jersey", "motocross-shirt", "mx-shirt"]),
     ("jacket", ["jacket", "coat", "parka"]),
     ("pants", ["pant", "trouser", "bibs"]),
     ("gloves", ["glove", "gauntlet"]),
@@ -79,8 +80,9 @@ PRODUCT_TYPE_RULES = [
     ("parts", ["stator", "starter", "gasket", "clutch", "bearing", "axle", "spark", "plug", "battery", "lever", "radiator", "hose"]),
 ]
 RUNTIME_COMPLEMENTARY_TYPES = {
-    "pants": ["jacket", "gloves", "boots", "helmet"],
+    "pants": ["jacket", "jersey", "gloves", "boots", "helmet"],
     "jacket": ["pants", "gloves", "boots", "helmet"],
+    "jersey": ["pants", "gloves", "boots", "helmet"],
     "helmet": ["helmet_accessory", "gloves", "jacket", "boots"],
     "helmet_accessory": ["helmet_accessory", "backpack", "care", "gloves"],
     "gloves": ["jacket", "pants", "helmet", "boots"],
@@ -99,7 +101,7 @@ RUNTIME_COMPLEMENTARY_TYPES = {
     "care": ["helmet_accessory", "backpack"],
 }
 GEAR_TYPES = {
-    "helmet", "helmet_accessory", "jacket", "pants", "gloves", "boots",
+    "helmet", "helmet_accessory", "jacket", "jersey", "pants", "gloves", "boots",
     "backpack", "communication", "protection",
 }
 PARTS_TYPES = {"air_filter", "oil", "tire", "brake", "chain", "parts"}
@@ -204,6 +206,7 @@ RIDING_TYPE_RULES = {
     ],
 }
 WOMENS_PRODUCT_KEYWORDS = ["womens", "women s", "ladies", "women's", "female"]
+YOUTH_PRODUCT_KEYWORDS = ["youth", "kids", "kid s", "child", "children", "junior", " jr", "-jr"]
 DIRT_ONLY_BRANDS = {
     "fly", "fox", "fasthouse", "troy", "seven", "shift", "thor", "one", "leatt",
     "6d",
@@ -440,6 +443,11 @@ def _is_womens_product(slug: str) -> bool:
     return any(kw in text for kw in WOMENS_PRODUCT_KEYWORDS)
 
 
+def _is_youth_product(slug: str) -> bool:
+    text = _normalize_slug_text(slug).replace("-", " ")
+    return any(kw in text for kw in YOUTH_PRODUCT_KEYWORDS)
+
+
 def _detect_helmet_tier(slug: str) -> str:
     text = _normalize_slug_text(slug)
     if any(kw in text for kw in HELMET_PREMIUM_KEYWORDS):
@@ -552,6 +560,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
             continue
         if _is_womens_product(rid) != _is_womens_product(source_product_id):
             continue
+        if _is_youth_product(rid) != _is_youth_product(source_product_id):
+            continue
         return rid
 
     # Second pass: any brand, with riding type filter. Collect all viable and
@@ -589,6 +599,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
             if source_brand and rec_brand and source_brand != rec_brand:
                 continue
         if _is_womens_product(rid) != _is_womens_product(source_product_id):
+            continue
+        if _is_youth_product(rid) != _is_youth_product(source_product_id):
             continue
         viable.append(rid)
     if viable:
@@ -633,6 +645,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                     continue
                 if _is_womens_product(rid) != _is_womens_product(source_product_id):
                     continue
+                if _is_youth_product(rid) != _is_youth_product(source_product_id):
+                    continue
                 return rid, rec_type
 
     # Second pass: any brand
@@ -669,6 +683,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                 if source_brand and rec_brand and source_brand != rec_brand:
                     continue
             if _is_womens_product(rid) != _is_womens_product(source_product_id):
+                continue
+            if _is_youth_product(rid) != _is_youth_product(source_product_id):
                 continue
             return rid, rec_type
     return "", ""
@@ -734,14 +750,18 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         # Do not recommend women's products for non-women's products (and vice versa).
         if _is_womens_product(rid) != _is_womens_product(product_id):
             continue
+        # Do not recommend youth products for adult products (and vice versa).
+        if _is_youth_product(rid) != _is_youth_product(product_id):
+            continue
         filtered.append(rec)
 
-    # For helmets, always reserve one slot for a price-tiered comm system.
+    # For helmets, always reserve one slot for a price-tiered comm system (street only).
+    # Dirt helmets don't use comm systems — recommend riding gear instead.
     selected = []
     selected_ids = set()
     seen_types = set()
 
-    if source_type == "helmet":
+    if source_type == "helmet" and source_riding != "dirt":
         comm_id = _pick_tiered_comm(product_id, selected_ids)
         if comm_id:
             selected.append({"id": comm_id, "label": "Pairs with your helmet", "priority": "Secondary"})
@@ -773,6 +793,8 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
                 if _is_vehicle_specific(rid):
                     continue
                 if _is_womens_product(rid) != _is_womens_product(product_id):
+                    continue
+                if _is_youth_product(rid) != _is_youth_product(product_id):
                     continue
                 rt = _detect_riding_type(rid)
                 if source_riding in {"street", "dirt"} and rt != source_riding:
@@ -835,7 +857,10 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
 
     # Supplement from global candidates by complementary type.
     if len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:
-        desired_types = RUNTIME_COMPLEMENTARY_TYPES.get(source_type, [])
+        if source_type == "helmet" and source_riding == "dirt":
+            desired_types = ["jersey", "pants", "gloves"]
+        else:
+            desired_types = RUNTIME_COMPLEMENTARY_TYPES.get(source_type, [])
         for desired_type in desired_types:
             if desired_type in seen_types:
                 continue

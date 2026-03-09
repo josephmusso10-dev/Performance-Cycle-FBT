@@ -914,8 +914,8 @@ def get_recommendations(product_id: str, explicit_map: dict, category_rules: lis
         if any(kw in pid_lower for kw in keywords):
             return _apply_recommendation_constraints(product_id, recs)
 
-    # 3) No match
-    return []
+    # 3) No CSV match: build from global pool by product type (same rules, no explicit recs)
+    return _apply_recommendation_constraints(product_id, [])
 
 
 def get_recommendations_debug(product_id: str, explicit_map: dict, category_rules: list) -> dict:

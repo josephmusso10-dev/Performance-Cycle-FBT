@@ -59,6 +59,7 @@ PER_PRODUCT_RECOMMENDATION_LIMIT = 3
 
 # Keep this lightweight/type-focused for runtime filtering.
 PRODUCT_TYPE_RULES = [
+    ("care", ["helmet-care", "helmet care", "windshield-clean", "windshield clean", "visor-clean", "visor clean", "helmet-clean", "helmet clean", "anti-fog", "antifog"]),
     ("helmet_accessory", ["visor", "face-shield", "faceshield", "shield", "pinlock", "cheekpad", "cheek-pad", "cheek pad", "chin curtain", "curtain", "audio-kit", "audio kit", "helmet-kit", "helmet kit"]),
     ("helmet", ["helmet"]),
     ("jacket", ["jacket", "coat", "parka"]),
@@ -81,6 +82,7 @@ RUNTIME_COMPLEMENTARY_TYPES = {
     "pants": ["jacket", "gloves", "boots", "helmet"],
     "jacket": ["pants", "gloves", "boots", "helmet"],
     "helmet": ["helmet_accessory", "gloves", "jacket", "boots"],
+    "helmet_accessory": ["helmet_accessory", "backpack", "care"],
     "gloves": ["jacket", "pants", "helmet", "boots"],
     "boots": ["jacket", "pants", "gloves", "helmet"],
     "air_filter": ["oil", "chain", "brake", "tire", "parts"],
@@ -94,6 +96,7 @@ RUNTIME_COMPLEMENTARY_TYPES = {
     "luggage": ["backpack", "hydration"],
     "communication": ["helmet", "gloves", "jacket"],
     "protection": ["jacket", "pants", "gloves"],
+    "care": ["helmet_accessory", "backpack"],
 }
 GEAR_TYPES = {
     "helmet", "helmet_accessory", "jacket", "pants", "gloves", "boots",
@@ -101,6 +104,7 @@ GEAR_TYPES = {
 }
 PARTS_TYPES = {"air_filter", "oil", "tire", "brake", "chain", "parts"}
 BACKPACK_ALLOWED_TYPES = {"hydration", "luggage"}
+HELMET_ACCESSORY_ALLOWED_TYPES = {"helmet_accessory", "backpack", "care"}
 VEHICLE_SPECIFIC_TERMS = {
     "harley", "davidson", "goldwing", "indian", "polaris", "can-am",
     "spyder", "ryker", "slingshot",
@@ -497,6 +501,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
             continue
         if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
             continue
+        if source_type in {"helmet_accessory", "care"} and rec_type not in HELMET_ACCESSORY_ALLOWED_TYPES:
+            continue
         rec_brand = _extract_brand_token(rid)
         same_brand = source_brand and rec_brand and source_brand == rec_brand
         if not same_brand:
@@ -516,6 +522,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
         if rid in selected_ids or rid == source_product_id:
             continue
         if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
+            continue
+        if source_type in {"helmet_accessory", "care"} and rec_type not in HELMET_ACCESSORY_ALLOWED_TYPES:
             continue
         if source_riding in {"street", "dirt"} and _detect_riding_type(rid) != source_riding:
             continue
@@ -548,6 +556,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                     continue
                 if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
                     continue
+                if source_type in {"helmet_accessory", "care"} and rec_type not in HELMET_ACCESSORY_ALLOWED_TYPES:
+                    continue
                 if source_riding in {"street", "dirt"} and _detect_riding_type(rid) != source_riding:
                     continue
                 if source_riding == "street" and source_street_subtype == "race" and _detect_street_subtype(rid) == "touring":
@@ -577,6 +587,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
             if rid in selected_ids or rid == source_product_id:
                 continue
             if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
+                continue
+            if source_type in {"helmet_accessory", "care"} and rec_type not in HELMET_ACCESSORY_ALLOWED_TYPES:
                 continue
             if source_riding in {"street", "dirt"} and _detect_riding_type(rid) != source_riding:
                 continue
@@ -644,6 +656,9 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         if source_type == "helmet" and rec_type in {"helmet", "helmet_accessory"}:
             if source_brand and rec_brand and source_brand != rec_brand:
                 continue
+        # Visors/shields only recommend other visors, backpacks, and care products.
+        if source_type in {"helmet_accessory", "care"} and rec_type not in HELMET_ACCESSORY_ALLOWED_TYPES:
+            continue
         filtered.append(rec)
 
     # For helmets, always reserve one slot for a price-tiered comm system.

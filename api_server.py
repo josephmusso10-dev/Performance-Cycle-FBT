@@ -220,6 +220,7 @@ STREET_RACE_KEYWORDS = [
 STREET_TOURING_KEYWORDS = [
     "tour", "touring", "adventure", "adv", "enduro",
     "dual-sport", "dualsport", "commuter", "cruiser",
+    "heated", "waterproof", "winter", "h20", "h2o", "liberty",
 ]
 _GLOBAL_REC_BY_TYPE = defaultdict(list)
 

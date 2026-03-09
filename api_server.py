@@ -193,8 +193,10 @@ RIDING_TYPE_RULES = {
         "hornet",
         "broozer", "custom 500", "pit boss", "recon", "race star",
         "forma", "gaerne", "tcx", "sidi",
+        "rev it", "rev-it", "revit", "tornado", "textile",
     ],
 }
+WOMENS_PRODUCT_KEYWORDS = ["womens", "women s", "ladies", "women's", "female"]
 DIRT_ONLY_BRANDS = {
     "fly", "fox", "fasthouse", "troy", "seven", "shift", "thor", "one", "leatt",
     "6d",
@@ -407,6 +409,11 @@ def _is_vehicle_specific(slug: str) -> bool:
     return any(term in text for term in VEHICLE_SPECIFIC_TERMS)
 
 
+def _is_womens_product(slug: str) -> bool:
+    text = _normalize_slug_text(slug).replace("-", " ")
+    return any(kw in text for kw in WOMENS_PRODUCT_KEYWORDS)
+
+
 def _detect_helmet_tier(slug: str) -> str:
     text = _normalize_slug_text(slug)
     if any(kw in text for kw in HELMET_PREMIUM_KEYWORDS):
@@ -515,6 +522,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
             continue
         if source_type == "backpack" and rec_type == "backpack":
             continue
+        if _is_womens_product(rid) != _is_womens_product(source_product_id):
+            continue
         return rid
 
     # Second pass: any brand, with riding type filter
@@ -547,6 +556,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
             rec_brand = _extract_brand_token(rid)
             if source_brand and rec_brand and source_brand != rec_brand:
                 continue
+        if _is_womens_product(rid) != _is_womens_product(source_product_id):
+            continue
         return rid
     return ""
 
@@ -583,6 +594,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                 rec_brand = _extract_brand_token(rid)
                 if rec_brand and rec_brand != source_brand:
                     continue
+                if _is_womens_product(rid) != _is_womens_product(source_product_id):
+                    continue
                 return rid, rec_type
 
     # Second pass: any brand
@@ -616,6 +629,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                 rec_brand = _extract_brand_token(rid)
                 if source_brand and rec_brand and source_brand != rec_brand:
                     continue
+            if _is_womens_product(rid) != _is_womens_product(source_product_id):
+                continue
             return rid, rec_type
     return "", ""
 
@@ -629,8 +644,8 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     source_type = _detect_product_type(product_id)
     source_brand = _extract_brand_token(product_id)
     source_riding = _detect_riding_type(product_id)
-    # Helmets and boots with unknown riding type default to street for filtering.
-    if source_type in {"helmet", "boots"} and source_riding == "unknown":
+    # Helmets, boots, and apparel with unknown riding type default to street for filtering.
+    if source_type in {"helmet", "boots", "jacket", "pants", "gloves"} and source_riding == "unknown":
         source_riding = "street"
     source_street_subtype = _detect_street_subtype(product_id)
     ordered = _sort_by_priority(recommendations)
@@ -673,6 +688,9 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         if source_type == "helmet_accessory" and rec_type == "helmet_accessory":
             if source_brand and rec_brand and source_brand != rec_brand:
                 continue
+        # Do not recommend women's products for non-women's products (and vice versa).
+        if _is_womens_product(rid) != _is_womens_product(product_id):
+            continue
         filtered.append(rec)
 
     # For helmets, always reserve one slot for a price-tiered comm system.

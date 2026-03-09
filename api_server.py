@@ -94,7 +94,7 @@ RUNTIME_COMPLEMENTARY_TYPES = {
     "backpack": ["hydration", "luggage"],
     "hydration": ["backpack", "luggage"],
     "luggage": ["backpack", "hydration"],
-    "communication": ["helmet", "gloves", "jacket"],
+    "communication": ["helmet_accessory", "gloves"],
     "protection": ["jacket", "pants", "gloves"],
     "care": ["helmet_accessory", "backpack"],
 }
@@ -109,6 +109,13 @@ VEHICLE_SPECIFIC_TERMS = {
     "harley", "davidson", "goldwing", "indian", "polaris", "can-am",
     "spyder", "ryker", "slingshot",
 }
+FREECOM_PRODUCTS = {
+    "cardo-freecom-2x-jbl-single-unit",
+    "cardo-freecom-2x-jbl-dual-pack",
+    "cardo-freecom-4x-jbl-single-unit",
+    "cardo-freecom-4x-jbl-dual-pack",
+}
+FREECOM_AUDIO_KIT = "cardo-freecom-2nd-helmet-audio-kit"
 
 # --- Helmet price tiers and matching comm systems ---
 # Premium: flagship race / top-of-line helmets
@@ -707,21 +714,29 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
 
     comm_only_brand = source_type == "communication"
 
-    # For comm systems, build from global pool with brand diversity
-    # and rotation so different comm products recommend different helmets.
+    # For comm systems: Freecom gets audio kit + helmet accessory + gloves;
+    # all others get helmet accessory(s) + gloves (no helmets).
     if comm_only_brand:
-        desired_types = RUNTIME_COMPLEMENTARY_TYPES.get(source_type, [])
+        if product_id in FREECOM_PRODUCTS and FREECOM_AUDIO_KIT != product_id:
+            selected.append({"id": FREECOM_AUDIO_KIT, "label": "Second helmet kit", "priority": "Secondary"})
+            selected_ids.add(FREECOM_AUDIO_KIT)
+            seen_types.add("helmet_accessory")
+        desired_types = ["helmet_accessory", "gloves"]
+        if product_id not in FREECOM_PRODUCTS:
+            desired_types.append("helmet_accessory")
         seen_brands_comm = set()
         offset = hash(product_id) % 50
         for desired_type in desired_types:
-            if desired_type in seen_types:
-                continue
+            if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
+                break
             candidates = _GLOBAL_REC_BY_TYPE.get(desired_type, [])
             viable = []
             for rid in candidates:
                 if rid in selected_ids or rid == product_id:
                     continue
                 if _is_vehicle_specific(rid):
+                    continue
+                if _is_womens_product(rid) != _is_womens_product(product_id):
                     continue
                 rt = _detect_riding_type(rid)
                 if source_riding in {"street", "dirt"} and rt != source_riding:
@@ -740,8 +755,6 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
                 if rec_brand:
                     seen_brands_comm.add(rec_brand)
                 break
-            if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
-                return selected
         return selected
 
     # Fill remaining slots preferring distinct types.

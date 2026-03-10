@@ -173,7 +173,7 @@ COMM_ENTRY = [
 RIDING_TYPE_RULES = {
     "dirt": [
         "dirt", "mx", "motocross", "offroad", "off-road", "enduro",
-        "trail", "atv", "cross", "dualsport", "dual-sport", "adventure", "adv",
+        "trail", "atv", "cross", "dualsport", "dual-sport",
         "sx", "fx", "kawasaki kx", "yz", "crf", "rmz", "ktm exc", "husqvarna fe",
         "dirtpaw", "patrol", "kinetic", "f-16", "f 16",
         "moto-9", "moto 9", "formula-cc",
@@ -204,6 +204,7 @@ RIDING_TYPE_RULES = {
         "broozer", "custom 500", "pit boss", "recon", "race star",
         "forma", "gaerne", "tcx", "sidi",
         "rev it", "rev-it", "revit", "tornado", "textile",
+        "adventure", "adv",  # adventure touring = street (e.g. Forma Adventure boots)
     ],
 }
 WOMENS_PRODUCT_KEYWORDS = ["womens", "women s", "ladies", "women's", "female"]

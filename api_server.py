@@ -179,6 +179,7 @@ RIDING_TYPE_RULES = {
         "moto-9", "moto 9", "formula-cc",
         "6d",
         "gate", "moto 10", "lithium",
+        "pro air",  # dirt gear line (e.g. TCX RT-Race Pro Air boots, Troy Lee GP Pro Air)
     ],
     "street": [
         "street", "sportbike", "supersport", "touring", "commuter",
@@ -392,17 +393,19 @@ def _extract_brand_token(slug: str) -> str:
 
 
 def _detect_riding_type(slug: str) -> str:
-    text = _normalize_slug_text(slug).replace("-", " ")
-    dirt_hit = any(keyword in text for keyword in RIDING_TYPE_RULES["dirt"])
-    street_hit = any(keyword in text for keyword in RIDING_TYPE_RULES["street"])
-    if dirt_hit and not street_hit:
-        return "dirt"
-    if street_hit and not dirt_hit:
-        return "street"
+    # Brand first: dirt/street-only brands override keyword matches (e.g. Troy Lee "Scout" gloves are dirt, not street).
     brand = _extract_brand_token(slug)
     if brand in DIRT_ONLY_BRANDS:
         return "dirt"
     if brand in STREET_ONLY_BRANDS:
+        return "street"
+    text = _normalize_slug_text(slug).replace("-", " ")
+    dirt_hit = any(keyword in text for keyword in RIDING_TYPE_RULES["dirt"])
+    street_hit = any(keyword in text for keyword in RIDING_TYPE_RULES["street"])
+    # When both match (e.g. "pro air" + "race"), prefer dirt so boots/gear like TCX RT-Race Pro Air stay dirt.
+    if dirt_hit:
+        return "dirt"
+    if street_hit:
         return "street"
     return "unknown"
 
@@ -719,13 +722,18 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
             continue
         rec_brand = _extract_brand_token(rid)
         same_brand = source_brand and rec_brand and source_brand == rec_brand
-        # Riding type filter: allow same-brand items through even if "unknown"
-        if source_riding in {"street", "dirt"} and rec_riding != source_riding and not same_brand:
+        # All recommendations must match street or dirt with the source (no cross-over, no same-brand exception).
+        if source_riding in {"street", "dirt"} and rec_riding != source_riding:
             continue
         if source_riding == "street" and source_street_subtype == "race" and rec_street_subtype == "touring" and not same_brand:
             continue
         if source_riding == "dirt" and source_dirt_subtype == "mx" and rec_dirt_subtype == "enduro" and not same_brand:
             continue
+
+        # Communication systems (Sena, Cardo, etc.) only for street helmets.
+        if rec_type == "communication":
+            if source_type != "helmet" or source_riding == "dirt":
+                continue
 
         if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:
             continue

@@ -436,6 +436,14 @@ def _detect_dirt_subtype(slug: str) -> str:
     return "other"
 
 
+SNOW_GEAR_KEYWORDS = ["snow", "snowbike", "snow bike", "snow-bike", "avalanche", "avalanch"]
+
+
+def _is_snow_gear(slug: str) -> bool:
+    text = _normalize_slug_text(slug).replace("-", " ")
+    return any(kw in text for kw in SNOW_GEAR_KEYWORDS)
+
+
 def _is_vehicle_specific(slug: str) -> bool:
     text = _normalize_slug_text(slug)
     return any(term in text for term in VEHICLE_SPECIFIC_TERMS)
@@ -545,6 +553,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
             continue
         if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
             continue
+        if _is_snow_gear(rid) and not _is_snow_gear(source_product_id):
+            continue
         if source_type in {"helmet_accessory", "care"} and rec_type not in HELMET_ACCESSORY_ALLOWED_TYPES:
             continue
         rec_brand = _extract_brand_token(rid)
@@ -574,6 +584,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
         if rid in selected_ids or rid == source_product_id:
             continue
         if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
+            continue
+        if _is_snow_gear(rid) and not _is_snow_gear(source_product_id):
             continue
         if source_type in {"helmet_accessory", "care"} and rec_type not in HELMET_ACCESSORY_ALLOWED_TYPES:
             continue
@@ -623,6 +635,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                     continue
                 if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
                     continue
+                if _is_snow_gear(rid) and not _is_snow_gear(source_product_id):
+                    continue
                 if source_type in {"helmet_accessory", "care"} and rec_type not in HELMET_ACCESSORY_ALLOWED_TYPES:
                     continue
                 if source_riding in {"street", "dirt"} and _detect_riding_type(rid) != source_riding:
@@ -660,6 +674,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
             if rid in selected_ids or rid == source_product_id:
                 continue
             if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
+                continue
+            if _is_snow_gear(rid) and not _is_snow_gear(source_product_id):
                 continue
             if source_type in {"helmet_accessory", "care"} and rec_type not in HELMET_ACCESSORY_ALLOWED_TYPES:
                 continue
@@ -734,6 +750,10 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         if rec_type == "communication":
             if source_type != "helmet" or source_riding == "dirt":
                 continue
+
+        # Snow gear only for snow gear (e.g. don't recommend snow boots for enduro jacket).
+        if _is_snow_gear(rid) and not _is_snow_gear(product_id):
+            continue
 
         if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:
             continue

@@ -638,6 +638,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                     continue
                 if _is_snow_gear(rid) and not _is_snow_gear(source_product_id):
                     continue
+                if source_type in {"hydration", "backpack", "luggage"} and rec_type == "helmet":
+                    continue
                 if source_type in {"helmet_accessory", "care"} and rec_type not in HELMET_ACCESSORY_ALLOWED_TYPES:
                     continue
                 if source_riding in {"street", "dirt"} and _detect_riding_type(rid) != source_riding:
@@ -677,6 +679,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
             if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
                 continue
             if _is_snow_gear(rid) and not _is_snow_gear(source_product_id):
+                continue
+            if source_type in {"hydration", "backpack", "luggage"} and rec_type == "helmet":
                 continue
             if source_type in {"helmet_accessory", "care"} and rec_type not in HELMET_ACCESSORY_ALLOWED_TYPES:
                 continue
@@ -754,6 +758,10 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
 
         # Snow gear only for snow gear (e.g. don't recommend snow boots for enduro jacket).
         if _is_snow_gear(rid) and not _is_snow_gear(product_id):
+            continue
+
+        # Don't recommend helmets for accessories (hydration, backpack, luggage).
+        if source_type in {"hydration", "backpack", "luggage"} and rec_type == "helmet":
             continue
 
         if source_type in PARTS_TYPES and rec_type in GEAR_TYPES:

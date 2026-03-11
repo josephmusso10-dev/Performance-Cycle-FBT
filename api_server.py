@@ -209,6 +209,7 @@ RIDING_TYPE_RULES = {
         "6d",
         "gate", "moto 10", "lithium",
         "flexair", "elevated",
+        "tech 10", "tech-10",
         "pro air",  # dirt gear line (e.g. TCX RT-Race Pro Air boots, Troy Lee GP Pro Air)
     ],
     "street": [
@@ -684,7 +685,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
             continue
         # For visor source, allow unknown riding type for backpack/care/gloves.
         if not (source_type == "helmet_accessory" and rec_type in {"backpack", "care", "gloves"}):
-            if source_riding in {"street", "dirt"} and _detect_riding_type(rid) != source_riding:
+            rec_rt = _detect_riding_type(rid)
+            if source_riding in {"street", "dirt"} and (rec_rt == "unknown" or rec_rt != source_riding):
                 continue
             if source_riding == "street" and source_street_subtype == "race" and _detect_street_subtype(rid) == "touring":
                 continue
@@ -745,7 +747,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                     continue
                 if source_type in {"helmet_accessory", "care"} and rec_type not in HELMET_ACCESSORY_ALLOWED_TYPES:
                     continue
-                if source_riding in {"street", "dirt"} and _detect_riding_type(rid) != source_riding:
+                _rec_rt_a = _detect_riding_type(rid)
+                if source_riding in {"street", "dirt"} and (_rec_rt_a == "unknown" or _rec_rt_a != source_riding):
                     continue
                 if source_riding == "street" and source_street_subtype == "race" and _detect_street_subtype(rid) == "touring":
                     continue
@@ -789,7 +792,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                 continue
             if source_type in {"helmet_accessory", "care"} and rec_type not in HELMET_ACCESSORY_ALLOWED_TYPES:
                 continue
-            if source_riding in {"street", "dirt"} and _detect_riding_type(rid) != source_riding:
+            _rec_rt_b = _detect_riding_type(rid)
+            if source_riding in {"street", "dirt"} and (_rec_rt_b == "unknown" or _rec_rt_b != source_riding):
                 continue
             if source_riding == "street" and source_street_subtype == "race" and _detect_street_subtype(rid) == "touring":
                 continue
@@ -859,7 +863,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         rec_brand = _extract_brand_token(rid)
         same_brand = source_brand and rec_brand and source_brand == rec_brand
         # All recommendations must match street or dirt with the source (no cross-over, no same-brand exception).
-        if source_riding in {"street", "dirt"} and rec_riding != source_riding:
+        if source_riding in {"street", "dirt"} and (rec_riding == "unknown" or rec_riding != source_riding):
             continue
         if source_riding == "street" and source_street_subtype == "race" and rec_street_subtype == "touring" and not same_brand:
             continue
@@ -956,7 +960,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
                 if _is_youth_product(rid) != _is_youth_product(product_id):
                     continue
                 rt = _detect_riding_type(rid)
-                if source_riding in {"street", "dirt"} and rt != source_riding:
+                if source_riding in {"street", "dirt"} and (rt == "unknown" or rt != source_riding):
                     continue
                 rid_type = _detect_product_type(rid)
                 if (source_tier and

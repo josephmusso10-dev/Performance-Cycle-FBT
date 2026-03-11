@@ -64,7 +64,7 @@ PER_PRODUCT_RECOMMENDATION_LIMIT = 3
 # Keep this lightweight/type-focused for runtime filtering.
 PRODUCT_TYPE_RULES = [
     ("care", ["helmet-care", "helmet care", "windshield-clean", "windshield clean", "visor-clean", "visor clean", "helmet-clean", "helmet clean"]),
-    ("helmet_accessory", ["visor", "face-shield", "faceshield", "shield", "pinlock", "cheekpad", "cheek-pad", "cheek pad", "chin curtain", "curtain", "audio-kit", "audio kit", "helmet-kit", "helmet kit"]),
+    ("helmet_accessory", ["visor", "face-shield", "faceshield", "shield", "pinlock", "cheekpad", "cheek-pad", "cheek pad", "chin curtain", "curtain", "audio-kit", "audio kit"]),
     ("helmet", ["helmet"]),
     ("tshirt", ["t-shirt"]),
     ("hat", ["hat", "snapback", "beanie"]),

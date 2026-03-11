@@ -643,6 +643,8 @@ def main():
                 "Priority": PRIORITIES[idx] if idx < len(PRIORITIES) else "",
                 "Estimated Price": f"{rec.price:.2f}",
                 "Price Tier": get_price_tier(rec.slug, rec.price),
+                "Source Estimated Price": f"{p.price:.2f}",
+                "Source Tier": get_price_tier(p.slug, p.price),
                 "Source Riding Type": rtype,
                 "Recommended Riding Type": riding_type.get(rec.slug, "unknown"),
             })
@@ -683,6 +685,8 @@ def main():
             "Priority": row.get("Priority", ""),
             "Estimated Price": row.get("Estimated Price", ""),
             "Price Tier": row.get("Price Tier") or get_price_tier(cat_rec_slug, cat_price),
+            "Source Estimated Price": row.get("Source Estimated Price", ""),
+            "Source Tier": row.get("Source Tier", ""),
             "Source Riding Type": row.get("Source Riding Type", ""),
             "Recommended Riding Type": row.get("Recommended Riding Type", ""),
         })
@@ -698,6 +702,8 @@ def main():
                 "Priority",
                 "Estimated Price",
                 "Price Tier",
+                "Source Estimated Price",
+                "Source Tier",
                 "Source Riding Type",
                 "Recommended Riding Type",
             ],

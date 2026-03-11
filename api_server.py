@@ -45,6 +45,7 @@ _RULES_CACHE = {
     "explicit_map": {},
     "category_rules": [],
     "rec_tier_map": {},
+    "source_tier_map": {},
     "fetched_at": 0.0,
     "source": "local",
     "last_error": None,
@@ -757,7 +758,8 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     """
     with _RULES_LOCK:
         rec_tier_map = _RULES_CACHE.get("rec_tier_map") or {}
-    source_tier = rec_tier_map.get(product_id)
+        source_tier_map = _RULES_CACHE.get("source_tier_map") or {}
+    source_tier = source_tier_map.get(product_id) or rec_tier_map.get(product_id)
 
     source_type = _detect_product_type(product_id)
     source_brand = _extract_brand_token(product_id)
@@ -995,6 +997,7 @@ def _build_rules_from_reader(reader):
     explicit_map = {}
     category_rules = {}
     rec_tier_map = {}
+    source_tier_map = {}
     for row in reader:
         product_id = (row.get("Product ID") or "").strip()
         rec_id = (row.get("Recommended Product ID") or "").strip()
@@ -1011,6 +1014,10 @@ def _build_rules_from_reader(reader):
             rec["tier"] = tier
             rec_tier_map[rec_id] = tier
 
+        src_tier = (row.get("Source Tier") or "").strip().lower()
+        if src_tier in VALID_TIERS:
+            source_tier_map[product_id] = src_tier
+
         if row_type == "category":
             keywords = tuple(_parse_category_keywords(product_id))
             if not keywords:
@@ -1020,25 +1027,25 @@ def _build_rules_from_reader(reader):
             explicit_map.setdefault(product_id, []).append(rec)
 
     category_rule_list = [(list(keywords), recs) for keywords, recs in category_rules.items()]
-    return explicit_map, category_rule_list, rec_tier_map
+    return explicit_map, category_rule_list, rec_tier_map, source_tier_map
 
 
 def _load_rules_from_local_csv():
     if not CSV_PATH.exists():
-        return {}, [], {}
+        return {}, [], {}, {}
     with open(CSV_PATH, newline="", encoding="utf-8-sig") as f:
-        explicit_map, category_rule_list, rec_tier_map = _build_rules_from_reader(csv.DictReader(f))
+        explicit_map, category_rule_list, rec_tier_map, source_tier_map = _build_rules_from_reader(csv.DictReader(f))
         _refresh_global_rec_pool(explicit_map, category_rule_list)
-        return explicit_map, category_rule_list, rec_tier_map
+        return explicit_map, category_rule_list, rec_tier_map, source_tier_map
 
 
 def _fetch_rules_from_remote_csv():
     response = requests.get(CSV_URL, timeout=CSV_TIMEOUT_SECONDS)
     response.raise_for_status()
     payload = response.text
-    explicit_map, category_rule_list, rec_tier_map = _build_rules_from_reader(csv.DictReader(io.StringIO(payload)))
+    explicit_map, category_rule_list, rec_tier_map, source_tier_map = _build_rules_from_reader(csv.DictReader(io.StringIO(payload)))
     _refresh_global_rec_pool(explicit_map, category_rule_list)
-    return explicit_map, category_rule_list, rec_tier_map
+    return explicit_map, category_rule_list, rec_tier_map, source_tier_map
 
 
 def _load_rules_from_csv(force_refresh: bool = False):
@@ -1049,11 +1056,12 @@ def _load_rules_from_csv(force_refresh: bool = False):
     """
     # Local-only mode: read local CSV every request (existing behavior).
     if not CSV_URL:
-        explicit_map, category_rules, rec_tier_map = _load_rules_from_local_csv()
+        explicit_map, category_rules, rec_tier_map, source_tier_map = _load_rules_from_local_csv()
         with _RULES_LOCK:
             _RULES_CACHE["explicit_map"] = explicit_map
             _RULES_CACHE["category_rules"] = category_rules
             _RULES_CACHE["rec_tier_map"] = rec_tier_map
+            _RULES_CACHE["source_tier_map"] = source_tier_map
             _RULES_CACHE["fetched_at"] = time.time()
             _RULES_CACHE["source"] = "local"
             _RULES_CACHE["last_error"] = None
@@ -1068,11 +1076,12 @@ def _load_rules_from_csv(force_refresh: bool = False):
 
     # Remote mode: refresh from URL with stale-cache fallback.
     try:
-        explicit_map, category_rules, rec_tier_map = _fetch_rules_from_remote_csv()
+        explicit_map, category_rules, rec_tier_map, source_tier_map = _fetch_rules_from_remote_csv()
         with _RULES_LOCK:
             _RULES_CACHE["explicit_map"] = explicit_map
             _RULES_CACHE["category_rules"] = category_rules
             _RULES_CACHE["rec_tier_map"] = rec_tier_map
+            _RULES_CACHE["source_tier_map"] = source_tier_map
             _RULES_CACHE["fetched_at"] = now
             _RULES_CACHE["source"] = "remote"
             _RULES_CACHE["last_error"] = None
@@ -1084,11 +1093,12 @@ def _load_rules_from_csv(force_refresh: bool = False):
                 return _RULES_CACHE["explicit_map"], _RULES_CACHE["category_rules"]
 
         # No remote cache yet; fall back to local file if present.
-        explicit_map, category_rules, rec_tier_map = _load_rules_from_local_csv()
+        explicit_map, category_rules, rec_tier_map, source_tier_map = _load_rules_from_local_csv()
         with _RULES_LOCK:
             _RULES_CACHE["explicit_map"] = explicit_map
             _RULES_CACHE["category_rules"] = category_rules
             _RULES_CACHE["rec_tier_map"] = rec_tier_map
+            _RULES_CACHE["source_tier_map"] = source_tier_map
             _RULES_CACHE["fetched_at"] = time.time()
             _RULES_CACHE["source"] = "local-fallback"
         return explicit_map, category_rules

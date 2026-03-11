@@ -67,6 +67,7 @@ PRODUCT_TYPE_RULES = [
     ("helmet_accessory", ["visor", "face-shield", "faceshield", "shield", "pinlock", "cheekpad", "cheek-pad", "cheek pad", "chin curtain", "curtain", "audio-kit", "audio kit", "helmet-kit", "helmet kit"]),
     ("helmet", ["helmet"]),
     ("tshirt", ["t-shirt"]),
+    ("hat", ["hat", "snapback", "beanie"]),
     ("jersey", ["jersey", "motocross-shirt", "mx-shirt"]),
     ("jacket", ["jacket", "coat", "parka", "suit", "race-suit", "gp-tech"]),
     ("pants", ["pant", "trouser", "bibs"]),
@@ -104,7 +105,8 @@ RUNTIME_COMPLEMENTARY_TYPES = {
     "communication": ["helmet_accessory", "gloves"],
     "protection": ["jacket", "pants", "gloves"],
     "care": ["helmet_accessory", "backpack"],
-    "tshirt": ["tshirt"],
+    "tshirt": ["tshirt", "hat"],
+    "hat": ["tshirt", "hat"],
 }
 GEAR_TYPES = {
     "helmet", "helmet_accessory", "jacket", "jersey", "pants", "gloves", "boots",
@@ -113,7 +115,7 @@ GEAR_TYPES = {
 PARTS_TYPES = {"air_filter", "oil", "tire", "brake", "chain", "parts"}
 # Types for which we never filter by price tier — if they pass all other rules, always recommend them.
 TIER_EXEMPT_TYPES = {"parts", "oil", "chain", "air_filter", "brake", "helmet_accessory", "care"}
-MULTI_REC_TYPES = {"tshirt"}
+MULTI_REC_TYPES = {"tshirt", "hat"}
 VALID_TIERS = {"budget", "mid", "premium", "elite"}
 # Per-type tier bands (budget_max, mid_max, premium_max) for catalog fallback tier.
 TIER_BANDS = {

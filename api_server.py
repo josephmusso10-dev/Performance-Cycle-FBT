@@ -1764,6 +1764,15 @@ def serve_widget_js():
     return send_from_directory(DATA_DIR / "widget", "fbt-widget.js")
 
 
+@app.route("/widget/fbt-loader.js")
+def serve_fbt_loader():
+    """Serve BigCommerce loader script by URL so it loads as external script (avoids CSP blocking inline)."""
+    path = DATA_DIR / "bigcommerce-script-manager-snippet.js"
+    if not path.exists():
+        return "/* fbt-loader: snippet file not found */", 404, {"Content-Type": "application/javascript"}
+    return send_from_directory(DATA_DIR, "bigcommerce-script-manager-snippet.js", mimetype="application/javascript")
+
+
 @app.route("/")
 def root():
     return redirect("/simulate", code=302)

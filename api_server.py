@@ -67,7 +67,7 @@ PRODUCT_TYPE_RULES = [
     ("helmet_accessory", ["visor", "face-shield", "faceshield", "shield", "pinlock", "cheekpad", "cheek-pad", "cheek pad", "chin curtain", "curtain", "audio-kit", "audio kit", "helmet-kit", "helmet kit"]),
     ("helmet", ["helmet"]),
     ("jersey", ["jersey", "motocross-shirt", "mx-shirt"]),
-    ("jacket", ["jacket", "coat", "parka"]),
+    ("jacket", ["jacket", "coat", "parka", "suit", "race-suit"]),
     ("pants", ["pant", "trouser", "bibs"]),
     ("gloves", ["glove", "gauntlet"]),
     ("boots", ["boot"]),
@@ -1456,7 +1456,7 @@ def simulate():
         # Keep first N with images first, then fill with any.
         with_image = [r for r in rows if (r[2].get("image") or "").strip()]
         without_image = [r for r in rows if not (r[2].get("image") or "").strip()]
-        picked = (with_image[:18] + without_image[:6])[:24]
+        picked = (with_image[:36] + without_image[:12])[:48]
         for slug, _, item in picked:
             sample_catalog[slug] = {
                 "name": item.get("name") or slug,
@@ -1469,6 +1469,7 @@ def simulate():
         sample_catalog = {
             # --- Helmets: premium ---
             "agv-pista-gp-rr-mono-carbon-helmet": {"name": "AGV Pista GP RR Mono Carbon Helmet", "price": 1679.99},
+            "agv-pista-gp-rr-soleluna-2023-limited-edition": {"name": "AGV Pista GP RR Soleluna 2023 Limited Edition", "price": 1929.95},
             "shoei-x-fifteen-escalate-helmet": {"name": "Shoei X-Fifteen Escalate Helmet", "price": 999.99},
             "arai-corsair-x-bracket-helmet": {"name": "Arai Corsair-X Bracket Helmet", "price": 969.99},
             "shoei-rf-1400-arcane-helmet": {"name": "Shoei RF-1400 Arcane Helmet", "price": 649.99},
@@ -1497,6 +1498,11 @@ def simulate():
             "shoei-neotec-3-pinlock-shield": {"name": "Shoei Neotec 3 Pinlock Shield", "price": 79.99},
             "arai-corsair-x-faceshield": {"name": "Arai Corsair-X Face Shield", "price": 109.99},
             "icon-airflite-face-shield-rst-silver": {"name": "Icon Airflite Face Shield RST Silver", "price": 45.00},
+            # --- Race suits ---
+            "alpinestars-gp-tech-v4-race-suit": {"name": "Alpinestars GP Tech v4 Race Suit", "price": 1799.99},
+            "alpinestars-gp-plus-r-v4-race-suit": {"name": "Alpinestars GP Plus R v4 Race Suit", "price": 899.99},
+            "dainese-laguna-seca-5-1pc-leather-suit": {"name": "Dainese Laguna Seca 5 1PC Leather Suit", "price": 1499.99},
+            "rev-it-quantum-2-race-suit": {"name": "REV'IT! Quantum 2 Race Suit", "price": 649.99},
             # --- Jackets ---
             "klim-badlands-pro-jacket": {"name": "Klim Badlands Pro Jacket", "price": 1199.99},
             "alpinestars-gp-tech-v4-leather-jacket": {"name": "Alpinestars GP Tech v4 Leather Jacket", "price": 1299.99},
@@ -1505,12 +1511,14 @@ def simulate():
             "icon-overlord3-mesh-jacket": {"name": "Icon Overlord3 Mesh Jacket", "price": 200.00},
             "firstgear-adventure-touring-jacket": {"name": "FirstGear Adventure Touring Jacket", "price": 349.99},
             "fox-legion-off-road-jacket": {"name": "Fox Legion Off-Road Jacket", "price": 259.95},
+            "alpinestars-gp-pro-r4-jacket": {"name": "Alpinestars GP Pro R4 Leather Jacket", "price": 749.99},
             # --- Pants ---
             "klim-badlands-pro-pants": {"name": "Klim Badlands Pro Pants", "price": 899.99},
             "alpinestars-missile-v3-leather-pants": {"name": "Alpinestars Missile v3 Leather Pants", "price": 549.99},
             "rev-it-tornado-3-textile-pants": {"name": "REV'IT! Tornado 3 Textile Pants", "price": 299.99},
             "dainese-delta-4-leather-pants": {"name": "Dainese Delta 4 Leather Pants", "price": 499.99},
             "icon-overlord-overpant": {"name": "Icon Overlord Overpant", "price": 175.00},
+            "alpinestars-track-v2-leather-pants": {"name": "Alpinestars Track v2 Leather Pants", "price": 349.99},
             # --- Gloves ---
             "alpinestars-gp-pro-r4-gloves": {"name": "Alpinestars GP Pro R4 Gloves", "price": 299.99},
             "dainese-full-metal-7-gloves": {"name": "Dainese Full Metal 7 Gloves", "price": 599.99},
@@ -1518,6 +1526,7 @@ def simulate():
             "klim-badlands-aero-pro-short-gloves": {"name": "Klim Badlands Aero Pro Short Gloves", "price": 89.99},
             "icon-pursuit-classic-perforated-gloves": {"name": "Icon Pursuit Classic Perforated Gloves", "price": 75.00},
             "fox-dirtpaw-mx-gloves": {"name": "Fox Dirtpaw MX Gloves", "price": 29.95},
+            "alpinestars-radar-tracking-gloves": {"name": "Alpinestars Radar Gloves", "price": 79.99},
             # --- Boots ---
             "alpinestars-supertech-r-boots": {"name": "Alpinestars Supertech R Boots", "price": 499.99},
             "sidi-crossfire-3-srs-boots": {"name": "Sidi Crossfire 3 SRS Boots", "price": 549.99},
@@ -1525,6 +1534,9 @@ def simulate():
             "dainese-torque-3-out-boots": {"name": "Dainese Torque 3 Out Boots", "price": 449.99},
             "icon-el-bajo-boot": {"name": "Icon El Bajo Boot", "price": 200.00},
             "forma-adventure-low-waterproof-boot": {"name": "Forma Adventure Low WP Boot", "price": 219.99},
+            "gaerne-sg-22-boots": {"name": "Gaerne SG-22 Boots", "price": 619.99},
+            "alpinestars-tech-10-supervented-boots-2025": {"name": "Alpinestars Tech-10 Supervented Boots", "price": 739.95},
+            "fox-comp-boots": {"name": "Fox Comp Boots", "price": 149.95},
             # --- Communication ---
             "cardo-packtalk-edge-jbl-single-bluetooth-unit": {"name": "Cardo Packtalk Edge JBL Single", "price": 349.99},
             "cardo-packtalk-neo-single-bluetooth-unit": {"name": "Cardo Packtalk Neo Single", "price": 249.99},
@@ -1763,12 +1775,14 @@ def get_frequently_bought_together():
                 ):
                     rec_info[rid]["priority"] = incoming
 
+    cart_types = {_detect_product_type(pid) for pid in cart_product_ids}
     recommendations = [
         {"id": rid, "label": info["label"] or None, "priority": info.get("priority") or None}
         for rid, info in sorted(
             rec_info.items(),
             key=lambda x: (-x[1]["count"], PRIORITY_RANK.get(x[1].get("priority", ""), 99)),
         )
+        if _detect_product_type(rid) not in cart_types
     ]
 
     return jsonify({

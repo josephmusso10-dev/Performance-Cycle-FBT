@@ -248,6 +248,7 @@ RIDING_TYPE_RULES = {
         "broozer", "custom 500", "pit boss", "recon", "race star",
         "forma", "gaerne", "tcx", "sidi",
         "rev it", "rev-it", "revit", "tornado", "textile",
+        "leather",          # leather jackets/pants/suits are street gear
         "adventure", "adv",  # adventure touring = street (e.g. Forma Adventure boots)
     ],
 }

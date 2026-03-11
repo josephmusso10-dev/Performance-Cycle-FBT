@@ -10,12 +10,21 @@
   5) Paste this entire snippet
 */
 (function () {
+  if (typeof console !== "undefined" && console.log) {
+    console.log("FBT: Product Recommendations script loaded");
+  }
   var API_URL = "https://performance-cycle-mb1rd1mcs-josephmusso10-devs-projects.vercel.app";
 
-  // Selectors for the mini cart ("Your Cart" slide-out on the right when you add to cart).
-  // First match wins. Performance Cycle theme uses .openCartSidebar (may contain an iframe).
+  // Selectors for the mini cart ("Your Cart" slide-out). First match wins.
+  // If the widget doesn't appear: right-click inside the cart panel -> Inspect, find the wrapper
+  // div that contains the cart items + "CHECK OUT NOW", and add its class or id here (e.g. ".your-cart-class").
   var MINI_CART_SELECTORS = [
+    "#halo-cart-sidebar",
+    ".halo-cart-sidebar",
     ".openCartSidebar",
+    ".modal-dialog",
+    ".drawer",
+    "[data-cart-drawer]",
     "[data-cart-preview]",
     "[data-cart]",
     ".cart-preview",
@@ -41,24 +50,54 @@
     ".js-cart-preview",
   ];
 
-  function getMiniCartContainer() {
-    for (var i = 0; i < MINI_CART_SELECTORS.length; i++) {
-      var el = document.querySelector(MINI_CART_SELECTORS[i]);
-      if (el) return el;
+  function findCartByText() {
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+    var node;
+    while ((node = walker.nextNode())) {
+      if (node.textContent && node.textContent.trim() === "Your Cart") {
+        var el = node.parentElement;
+        while (el && el !== document.body) {
+          if (el.innerText && (el.innerText.indexOf("CHECK OUT") >= 0 || el.innerText.indexOf("CHECKOUT") >= 0)) {
+            return el;
+          }
+          el = el.parentElement;
+        }
+      }
     }
     return null;
   }
 
-  function ensureContainer() {
-    var existing = document.getElementById("fbt-widget");
-    if (existing) return existing;
+  function getMiniCartContainer() {
+    for (var i = 0; i < MINI_CART_SELECTORS.length; i++) {
+      var el = document.querySelector(MINI_CART_SELECTORS[i]);
+      if (el) {
+        if (typeof console !== "undefined" && console.log) {
+          console.log("FBT: Injected into " + MINI_CART_SELECTORS[i]);
+        }
+        return el;
+      }
+    }
+    var fallback = findCartByText();
+    if (fallback) {
+      if (typeof console !== "undefined" && console.log) {
+        console.log("FBT: Injected via fallback (found 'Your Cart' + CHECK OUT)");
+      }
+      return fallback;
+    }
+    if (typeof console !== "undefined" && console.log) {
+      console.log("FBT: No mini cart container found. Widget will not show.");
+    }
+    return null;
+  }
 
+  function ensureContainer(cb) {
     var miniCart = getMiniCartContainer();
-    if (!miniCart) return null;
-
+    if (!miniCart) return cb(null);
+    var existing = document.getElementById("fbt-widget");
+    if (existing) return cb(existing);
     var el = document.createElement("div");
     el.id = "fbt-widget";
-    el.style.cssText = "pointer-events: none;";
+    el.style.cssText = "pointer-events: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;";
     if (!document.getElementById("fbt-widget-pointer-events-style")) {
       var style = document.createElement("style");
       style.id = "fbt-widget-pointer-events-style";
@@ -66,7 +105,7 @@
       document.head.appendChild(style);
     }
     miniCart.appendChild(el);
-    return el;
+    cb(el);
   }
 
   function toSlug(url) {
@@ -129,31 +168,33 @@
     var miniCart = getMiniCartContainer();
     if (!miniCart) return;
 
-    var container = ensureContainer();
-    if (!container) return;
-    window._fbtInitialized = true;
-    Promise.all([loadWidgetScript(), getCartSlugs()]).then(function (res) {
-      var slugs = res[1] || [];
-      if (!window.FBTWidget) return;
-      window.FBTWidget.init({
-        apiUrl: API_URL,
-        cartProductIds: slugs,
-        containerId: "fbt-widget",
-        title: "Frequently Bought Together",
-        showAddButton: false,
-        onAddToCart: null,
-        layout: "minicart",
-        theme: {
-          text: "#333",
-          muted: "#6b7280",
-          border: "#e5e7eb",
-          accent: "#b91c1c"
+    ensureContainer(function (container) {
+      if (!container) return;
+      window._fbtInitialized = true;
+      Promise.all([loadWidgetScript(), getCartSlugs()]).then(function (res) {
+        var slugs = res[1] || [];
+        if (!window.FBTWidget) return;
+        var containerId = "fbt-widget";
+        window.FBTWidget.init({
+          apiUrl: API_URL,
+          cartProductIds: slugs,
+          containerId: containerId,
+          title: "Product Recommendations",
+          showAddButton: false,
+          onAddToCart: null,
+          layout: "minicart",
+          theme: {
+            text: "#333",
+            muted: "#6b7280",
+            border: "#e5e7eb",
+            accent: "#b91c1c"
+          }
+        });
+        var widget = document.getElementById(containerId);
+        if (!widget && container && container.ownerDocument) {
+          widget = container.ownerDocument.getElementById(containerId);
         }
-      });
-      // When mini cart is visible, refresh recommendations (e.g. after add-to-cart)
-      if (miniCart && window.IntersectionObserver) {
-        var widget = document.getElementById("fbt-widget");
-        if (widget) {
+        if (miniCart && widget && window.IntersectionObserver) {
           var io = new IntersectionObserver(
             function (entries) {
               entries.forEach(function (entry) {
@@ -168,12 +209,12 @@
           );
           io.observe(widget);
         }
-      }
+      });
     });
   }
 
   var retryCount = 0;
-  var maxRetries = 5;
+  var maxRetries = 25;
 
   function tryInit() {
     if (window._fbtInitialized) return;
@@ -181,7 +222,7 @@
     init();
     if (!window._fbtInitialized && retryCount < maxRetries) {
       retryCount++;
-      setTimeout(tryInit, 600);
+      setTimeout(tryInit, 800);
     }
   }
 

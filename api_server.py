@@ -295,7 +295,6 @@ def _fetch_bigcommerce_catalog_map():
                 "page": page,
                 "limit": limit,
                 "include": "primary_image",
-                "is_visible": True,
                 "include_fields": "id,name,price,custom_url",
             },
             timeout=CSV_TIMEOUT_SECONDS,

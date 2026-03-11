@@ -434,6 +434,28 @@ def _candidate_catalog_keys(raw_id: str) -> list:
     return candidates
 
 
+def _source_lookup_candidates(product_id: str) -> list:
+    """
+    For CSV lookups (source_tier_map, explicit_map): if exact product_id isn't
+    found, try shorter keys so e.g. arai-corsair-x-bracket-helmet matches
+    arai-corsair-x-helmet. Returns [product_id, ...] with fallback candidates.
+    """
+    val = (product_id or "").strip()
+    if not val:
+        return []
+    candidates = [val]
+    parts = val.split("-")
+    for i in range(len(parts) - 1, 0, -1):
+        base = "-".join(parts[:i])
+        if base not in candidates:
+            candidates.append(base)
+        if val.endswith("-helmet") and not base.endswith("-helmet"):
+            with_helmet = base + "-helmet"
+            if with_helmet not in candidates:
+                candidates.append(with_helmet)
+    return candidates
+
+
 def _parse_category_keywords(raw_value: str) -> list:
     """
     Parse values like:
@@ -834,10 +856,13 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     with _RULES_LOCK:
         rec_tier_map = _RULES_CACHE.get("rec_tier_map") or {}
         source_tier_map = _RULES_CACHE.get("source_tier_map") or {}
-    source_tier = (
-        source_tier_map.get(product_id)
-        or _get_source_tier_from_catalog(product_id)
-    )
+    source_tier = None
+    for key in _source_lookup_candidates(product_id):
+        if key in source_tier_map:
+            source_tier = source_tier_map[key]
+            break
+    if source_tier is None:
+        source_tier = _get_source_tier_from_catalog(product_id)
 
     source_type = _detect_product_type(product_id)
     source_brand = _extract_brand_token(product_id)
@@ -1204,9 +1229,12 @@ def _load_rules_from_csv(force_refresh: bool = False):
 
 
 def get_recommendations(product_id: str, explicit_map: dict, category_rules: list) -> list:
-    # 1) Exact product match from CSV
+    # 1) Exact or fallback product match from CSV (e.g. arai-corsair-x-bracket-helmet -> arai-corsair-x-helmet)
     if product_id in explicit_map:
         return _apply_recommendation_constraints(product_id, explicit_map[product_id])
+    for key in _source_lookup_candidates(product_id):
+        if key in explicit_map:
+            return _apply_recommendation_constraints(product_id, explicit_map[key])
 
     # 2) Category fallback rows from CSV
     pid_lower = product_id.lower()
@@ -1227,6 +1255,14 @@ def get_recommendations_debug(product_id: str, explicit_map: dict, category_rule
             "matched_rule": product_id,
             "recommendations": constrained,
         }
+    for key in _source_lookup_candidates(product_id):
+        if key in explicit_map:
+            constrained = _apply_recommendation_constraints(product_id, explicit_map[key])
+            return {
+                "match_type": "explicit",
+                "matched_rule": key,
+                "recommendations": constrained,
+            }
 
     pid_lower = product_id.lower()
     for keywords, recs in category_rules:

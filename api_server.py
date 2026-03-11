@@ -146,6 +146,9 @@ VEHICLE_SPECIFIC_TERMS = {
     "harley", "davidson", "goldwing", "indian", "polaris", "can-am",
     "spyder", "ryker", "slingshot",
 }
+# Electric / specialty bikes that use non-standard tires — never recommend
+# generic motorcycle tires for these source products.
+NO_TIRE_VEHICLE_TERMS = {"super-73", "super73", "talaria", "falcon-79", "falcon79", "eride", "e-ride"}
 FREECOM_PRODUCTS = {
     "cardo-freecom-2x-jbl-single-unit",
     "cardo-freecom-2x-jbl-dual-pack",
@@ -602,6 +605,12 @@ def _is_snow_gear(slug: str) -> bool:
 def _is_vehicle_specific(slug: str) -> bool:
     text = _normalize_slug_text(slug)
     return any(term in text for term in VEHICLE_SPECIFIC_TERMS)
+
+
+def _is_no_tire_vehicle(slug: str) -> bool:
+    """True for electric/specialty bikes that shouldn't be recommended standard motorcycle tires."""
+    text = (slug or "").lower()
+    return any(term in text for term in NO_TIRE_VEHICLE_TERMS)
 
 
 def _is_womens_product(slug: str) -> bool:
@@ -1154,6 +1163,9 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         # Snow gear only for snow gear (e.g. don't recommend snow boots for enduro jacket).
         if _is_snow_gear(rid) and not _is_snow_gear(product_id):
             continue
+        # Electric / specialty bikes (Super 73, Talaria, Falcon 79, eRide) don't use standard motorcycle tires.
+        if _is_no_tire_vehicle(product_id) and rec_type == "tire":
+            continue
 
         # Don't recommend helmets for accessories (hydration, backpack, luggage).
         if source_type in {"hydration", "backpack", "luggage"} and rec_type == "helmet":
@@ -1393,6 +1405,8 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         exclude_types = {t for t in _GLOBAL_REC_BY_TYPE if t not in {"tshirt", "hat"}}
     else:
         exclude_types = set()
+    if _is_no_tire_vehicle(product_id):
+        exclude_types = exclude_types | {"tire"}
     while len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:
         rid, rec_type = _pick_global_candidate_any(product_id, source_type, source_brand, source_riding, source_street_subtype, source_dirt_subtype, selected_ids, seen_types, source_tier=source_tier, rec_tier_map=rec_tier_map, boots_slug_must_contain=boots_filter, helmet_slug_any_of=helmet_filter, gloves_racing_only=source_is_racing, exclude_types=exclude_types, source_is_suit=source_is_suit, apparel_race_only=source_is_race_helmet)
         if not rid:

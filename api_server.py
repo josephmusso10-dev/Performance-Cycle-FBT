@@ -665,6 +665,60 @@ def _suit_glove_matches_brand(glove_slug: str, suit_brand: str) -> bool:
     return False
 
 
+# Hardcoded suit recommendation pools — these are picked directly for any race suit.
+_SUIT_HELMETS = [
+    "shoei-x-15-marquez-73-v2-helmet",
+    "shoei-x-15-diggia-2-tc-1-helmet",
+    "shoei-x-15-marquez-thai-tc-2-helmet",
+    "alpinestars-supertech-r10-miller-le-helmet",
+    "alpinestars-supertech-r10-flyte-le-helmet",
+    "alpinestars-supertech-r10-limited-edition-pedro-acosta-helmet",
+    "agv-pista-gp-rr-soleluna-2023-limited-edition",
+    "agv-pista-gp-rr-mono-carbon-helmet",
+]
+_SUIT_BOOTS = [
+    "alpinestars-smx-plus-v2-vented-boots",
+    "alpinestars-smx-6v3-vented-boots",
+    "alpinestars-smx-1r-vented-v2-boots",
+]
+_SUIT_GLOVES_ALPINESTARS = [
+    "alpinestars-gp-tech-v2-s-gloves",
+    "alpinestars-gp-pro-r4-gloves",
+    "alpinestars-gp-r-v3-gloves",
+    "alpinestars-gp-r-v2-gloves",
+]
+_SUIT_GLOVES_REVIT = [
+    "revit-control-gloves",
+]
+
+
+def _pick_suit_recommendations(product_id: str) -> list:
+    """Directly return hardcoded helmet + gloves + boots for any race suit, bypassing all other logic."""
+    brand = _extract_brand_token(product_id)
+    brand_low = brand.lower() if brand else ""
+
+    # Pick gloves by suit brand: Alpinestars -> GP; Rev'it -> Control; default -> Alpinestars GP
+    if "revit" in brand_low or "rev-it" in brand_low:
+        glove_pool = _SUIT_GLOVES_REVIT
+    else:
+        glove_pool = _SUIT_GLOVES_ALPINESTARS
+
+    offset = hash(product_id) % max(len(_SUIT_HELMETS), 1)
+    helmet = _SUIT_HELMETS[offset % len(_SUIT_HELMETS)]
+
+    offset2 = (hash(product_id) + 1) % max(len(_SUIT_BOOTS), 1)
+    boots = _SUIT_BOOTS[offset2 % len(_SUIT_BOOTS)]
+
+    offset3 = (hash(product_id) + 2) % max(len(glove_pool), 1)
+    gloves = glove_pool[offset3 % len(glove_pool)]
+
+    result = []
+    result.append({"id": helmet, "label": "Recommended item", "priority": "Primary"})
+    result.append({"id": gloves, "label": "Recommended item", "priority": "Secondary"})
+    result.append({"id": boots, "label": "Recommended item", "priority": "Tertiary"})
+    return result
+
+
 def _detect_helmet_tier(slug: str) -> str:
     text = _normalize_slug_text(slug)
     if any(kw in text for kw in HELMET_PREMIUM_KEYWORDS):
@@ -987,6 +1041,10 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     - Return up to 3 recommendations with preference for distinct product types.
     - Price tier: when source has a tier and both source/rec are not tier-exempt, require matching tier.
     """
+    # Race suits always get the fixed helmet/gloves/boots pool — no other logic needed.
+    if _is_race_suit(product_id):
+        return _pick_suit_recommendations(product_id)
+
     with _RULES_LOCK:
         rec_tier_map = _RULES_CACHE.get("rec_tier_map") or {}
         source_tier_map = _RULES_CACHE.get("source_tier_map") or {}

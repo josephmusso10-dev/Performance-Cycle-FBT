@@ -1813,6 +1813,9 @@ def simulate():
             "bell-moto-9s-flex-helmet": {"name": "Bell Moto-9S Flex Helmet", "price": 519.95},
             "troy-lee-designs-se5-carbon-mips-helmet": {"name": "Troy Lee Designs SE5 Carbon MIPS Helmet", "price": 699.95},
             "oneal-sierra-mips-dirt-helmet": {"name": "O'Neal Sierra MIPS Helmet", "price": 149.99},
+            "leatt-9-5-adv-v25-carbon-helmet-kit-2025": {"name": "Leatt 9.5 ADV V25 Carbon Helmet Kit 2025", "price": 879.00},
+            "leatt-moto-9-5-v25-carbon-helmet-kit": {"name": "Leatt Moto 9.5 V25 Carbon Helmet Kit", "price": 769.00},
+            "leatt-moto-8-5-v25-composite-helmet-kit": {"name": "Leatt Moto 8.5 V25 Composite Helmet Kit", "price": 499.00},
             # --- Helmet accessories ---
             "shoei-cwr-f2-pinlock-face-shield": {"name": "Shoei CWR-F2 Pinlock Face Shield", "price": 69.99},
             "agv-pista-gp-rr-visor-clear": {"name": "AGV Pista GP RR Visor Clear", "price": 149.99},

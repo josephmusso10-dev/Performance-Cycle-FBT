@@ -253,6 +253,7 @@ STREET_ONLY_BRANDS = {
 STREET_RACE_KEYWORDS = [
     "race", "racing", "track", "pista", "gp", "supersport", "sportbike",
     "r10", "x 15", "x fifteen", "rf 1400", "corsair",
+    "missile", "super speed",
 ]
 STREET_TOURING_KEYWORDS = [
     "tour", "touring", "adventure", "adv", "enduro",
@@ -652,6 +653,23 @@ def _is_racing_glove(slug: str) -> bool:
     return "alpinestars" in low and "gp" in low
 
 
+def _is_race_helmet(product_id: str) -> bool:
+    """True if product is a race-level helmet: Shoei X-15, AGV Pista, Alpinestars Supertech R10."""
+    return bool(product_id) and _detect_product_type(product_id) == "helmet" and _helmet_allowed_for_suit(product_id)
+
+
+def _is_race_grade_apparel(slug: str) -> bool:
+    """True if slug is a race suit, race jacket, or race pants (not touring/adventure gear)."""
+    if not slug:
+        return False
+    if _is_race_suit(slug):
+        return True
+    ptype = _detect_product_type(slug)
+    if ptype not in {"jacket", "pants"}:
+        return False
+    return _detect_street_subtype(slug) == "race"
+
+
 def _suit_glove_matches_brand(glove_slug: str, suit_brand: str) -> bool:
     """True if glove is the suit-brand racing glove: Alpinestars suit -> GP gloves; Rev'it suit -> Control gloves."""
     if not glove_slug or not suit_brand:
@@ -784,7 +802,7 @@ def _refresh_global_rec_pool(explicit_map: dict, category_rule_list: list) -> No
         _GLOBAL_REC_BY_TYPE[rec_type] = ids
 
 
-def _pick_global_candidate(source_product_id: str, source_type: str, source_brand: str, source_riding: str, source_street_subtype: str, source_dirt_subtype: str, rec_type: str, selected_ids: set, source_tier: str = None, rec_tier_map: dict = None, boots_slug_must_contain: str = None, helmet_slug_any_of: tuple = None, gloves_racing_only: bool = False, source_is_suit: bool = False) -> str:
+def _pick_global_candidate(source_product_id: str, source_type: str, source_brand: str, source_riding: str, source_street_subtype: str, source_dirt_subtype: str, rec_type: str, selected_ids: set, source_tier: str = None, rec_tier_map: dict = None, boots_slug_must_contain: str = None, helmet_slug_any_of: tuple = None, gloves_racing_only: bool = False, source_is_suit: bool = False, apparel_race_only: bool = False) -> str:
     rec_tier_map = rec_tier_map or {}
     candidates = _GLOBAL_REC_BY_TYPE.get(rec_type, [])
     if rec_type == "boots" and boots_slug_must_contain:
@@ -795,6 +813,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
         candidates = [r for r in candidates if _suit_glove_matches_brand(r, source_brand)]
     elif rec_type == "gloves" and gloves_racing_only:
         candidates = [r for r in candidates if _is_racing_glove(r)]
+    if rec_type in {"jacket", "pants"} and apparel_race_only:
+        candidates = [r for r in candidates if _is_race_grade_apparel(r)]
 
     def _tier_ok(rid):
         if not source_tier:
@@ -912,7 +932,7 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
     return ""
 
 
-def _pick_global_candidate_any(source_product_id: str, source_type: str, source_brand: str, source_riding: str, source_street_subtype: str, source_dirt_subtype: str, selected_ids: set, used_types: set, source_tier: str = None, rec_tier_map: dict = None, boots_slug_must_contain: str = None, helmet_slug_any_of: tuple = None, gloves_racing_only: bool = False, exclude_types: set = None, source_is_suit: bool = False) -> tuple:
+def _pick_global_candidate_any(source_product_id: str, source_type: str, source_brand: str, source_riding: str, source_street_subtype: str, source_dirt_subtype: str, selected_ids: set, used_types: set, source_tier: str = None, rec_tier_map: dict = None, boots_slug_must_contain: str = None, helmet_slug_any_of: tuple = None, gloves_racing_only: bool = False, exclude_types: set = None, source_is_suit: bool = False, apparel_race_only: bool = False) -> tuple:
     rec_tier_map = rec_tier_map or {}
     exclude_types = exclude_types or set()
 
@@ -932,6 +952,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
             return [r for r in candidates if _suit_glove_matches_brand(r, source_brand)]
         if rec_type == "gloves" and gloves_racing_only:
             return [r for r in candidates if _is_racing_glove(r)]
+        if rec_type in {"jacket", "pants"} and apparel_race_only:
+            return [r for r in candidates if _is_race_grade_apparel(r)]
         return list(candidates)
 
     # First pass: prefer same brand for gear-to-gear
@@ -1066,6 +1088,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     source_dirt_subtype = _detect_dirt_subtype(product_id)
     source_is_suit = _is_race_suit(product_id)
     source_is_racing = _is_racing_source(product_id)
+    source_is_race_helmet = _is_race_helmet(product_id)
     ordered = _sort_by_priority(recommendations)
 
     filtered = []
@@ -1093,6 +1116,9 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         if source_is_suit and rec_type == "gloves" and not _suit_glove_matches_brand(rid, source_brand):
             continue
         if not source_is_suit and _is_racing_source(product_id) and rec_type == "gloves" and not _is_racing_glove(rid):
+            continue
+        # Race helmet: jackets/pants must be race-grade (race suits, race jackets — no touring gear).
+        if source_is_race_helmet and rec_type in {"jacket", "pants"} and not _is_race_grade_apparel(rid):
             continue
         # All recommendations must match street or dirt with the source (no cross-over, no same-brand exception).
         if source_riding in {"street", "dirt"} and (rec_riding == "unknown" or rec_riding != source_riding):
@@ -1303,7 +1329,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         for desired_type in desired_types:
             if desired_type in seen_types:
                 continue
-            rid = _pick_global_candidate(product_id, source_type, source_brand, source_riding, source_street_subtype, source_dirt_subtype, desired_type, selected_ids, source_tier=source_tier, rec_tier_map=rec_tier_map, boots_slug_must_contain=boots_filter, helmet_slug_any_of=helmet_filter, gloves_racing_only=source_is_racing, source_is_suit=source_is_suit)
+            rid = _pick_global_candidate(product_id, source_type, source_brand, source_riding, source_street_subtype, source_dirt_subtype, desired_type, selected_ids, source_tier=source_tier, rec_tier_map=rec_tier_map, boots_slug_must_contain=boots_filter, helmet_slug_any_of=helmet_filter, gloves_racing_only=source_is_racing, source_is_suit=source_is_suit, apparel_race_only=source_is_race_helmet)
             if not rid:
                 continue
             selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})
@@ -1334,7 +1360,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     helmet_filter = SUIT_ALLOWED_HELMET_KEYWORDS if source_is_suit else None
     exclude_types = {"pants", "jacket", "helmet_accessory", "communication"} if source_is_suit else set()
     while len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:
-        rid, rec_type = _pick_global_candidate_any(product_id, source_type, source_brand, source_riding, source_street_subtype, source_dirt_subtype, selected_ids, seen_types, source_tier=source_tier, rec_tier_map=rec_tier_map, boots_slug_must_contain=boots_filter, helmet_slug_any_of=helmet_filter, gloves_racing_only=source_is_racing, exclude_types=exclude_types, source_is_suit=source_is_suit)
+        rid, rec_type = _pick_global_candidate_any(product_id, source_type, source_brand, source_riding, source_street_subtype, source_dirt_subtype, selected_ids, seen_types, source_tier=source_tier, rec_tier_map=rec_tier_map, boots_slug_must_contain=boots_filter, helmet_slug_any_of=helmet_filter, gloves_racing_only=source_is_racing, exclude_types=exclude_types, source_is_suit=source_is_suit, apparel_race_only=source_is_race_helmet)
         if not rid:
             break
         selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})

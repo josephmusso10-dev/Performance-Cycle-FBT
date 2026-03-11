@@ -684,6 +684,12 @@ def _suit_glove_matches_brand(glove_slug: str, suit_brand: str) -> bool:
     return False
 
 
+# Race suits recommended for race helmets (Pista, X-15, R-10).
+_RACE_HELMET_SUITS = [
+    "alpinestars-fusion-1-piece-race-suit",
+    "alpinestars-2025-missile-v2-1-piece-ignition-leather-suit",
+]
+
 # Hardcoded suit recommendation pools — these are picked directly for any race suit.
 _SUIT_HELMETS = [
     "shoei-x-15-marquez-73-v2-helmet",
@@ -1189,8 +1195,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     selected_ids = set()
     seen_types = set()
 
-    # Race helmets (X-15, Pista, R-10) pair with racing gear, not comm systems.
-    if source_type == "helmet" and source_riding != "dirt" and not source_is_race_helmet:
+    if source_type == "helmet" and source_riding != "dirt":
         comm_id = _pick_tiered_comm(product_id, selected_ids)
         if comm_id:
             selected.append({"id": comm_id, "label": "Pairs with your helmet", "priority": "Secondary"})
@@ -1331,7 +1336,13 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         elif source_is_suit:
             desired_types = ["gloves", "boots", "helmet"]
         elif source_is_race_helmet:
-            desired_types = ["jacket", "gloves", "boots"]
+            # For race helmets, hardcode one of the two specific Alpinestars race suits.
+            suit_slug = _RACE_HELMET_SUITS[hash(product_id) % len(_RACE_HELMET_SUITS)]
+            if suit_slug not in selected_ids:
+                selected.append({"id": suit_slug, "label": "Recommended item", "priority": "Tertiary"})
+                selected_ids.add(suit_slug)
+                seen_types.add("jacket")
+            desired_types = []
         else:
             desired_types = RUNTIME_COMPLEMENTARY_TYPES.get(source_type, [])
         boots_filter = "smx" if source_is_suit else None

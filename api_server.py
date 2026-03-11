@@ -1593,23 +1593,26 @@ def _load_rules_from_csv(force_refresh: bool = False):
         return explicit_map, category_rules
 
 
+# Hardcoded recs for Shoei RF-1400 (any variant) — visor, comms, gloves only.
+_SHOEI_RF1400_RECS = [
+    {"id": "shoei-rf-1400-helmet-photochromic-shield-cwr-f2", "label": "Complements your helmet", "priority": "Primary"},
+    {"id": "sena-50s-communication-system-with-harman-kardon-speakers-dual-pack", "label": "Complements your helmet", "priority": "Secondary"},
+    {"id": "alpinestars-smx-2-air-carbon-v2-gloves", "label": "Complements your helmet", "priority": "Tertiary"},
+]
+
+
 def get_recommendations(product_id: str, explicit_map: dict, category_rules: list) -> list:
+    # 0) Shoei RF-1400 any variant: always visor + comms + gloves (no other logic).
+    pid_low = (product_id or "").lower()
+    if "shoei" in pid_low and "rf-1400" in pid_low:
+        return list(_SHOEI_RF1400_RECS)
+
     # 1) Exact or fallback product match from CSV (e.g. arai-corsair-x-bracket-helmet -> arai-corsair-x-helmet)
     if product_id in explicit_map:
         return _apply_recommendation_constraints(product_id, explicit_map[product_id])
     for key in _source_lookup_candidates(product_id):
         if key in explicit_map:
             return _apply_recommendation_constraints(product_id, explicit_map[key])
-
-    # Hardcoded fallback for Shoei RF-1400 variants with no explicit CSV entry:
-    # always recommend a visor, comms system, and gloves.
-    pid_low = (product_id or "").lower()
-    if "shoei" in pid_low and "rf-1400" in pid_low and "helmet" in pid_low:
-        return [
-            {"id": "shoei-rf-1400-helmet-photochromic-shield-cwr-f2", "label": "Complements your helmet", "priority": "Primary"},
-            {"id": "sena-50s-communication-system-with-harman-kardon-speakers-dual-pack", "label": "Complements your helmet", "priority": "Secondary"},
-            {"id": "alpinestars-smx-2-air-carbon-v2-gloves", "label": "Complements your helmet", "priority": "Tertiary"},
-        ]
 
     # 2) Category fallback rows from CSV
     pid_lower = product_id.lower()

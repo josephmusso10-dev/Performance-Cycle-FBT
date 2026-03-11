@@ -638,6 +638,12 @@ def _is_race_suit(product_id: str) -> bool:
     return "suit" in low or "race-suit" in low or "hyperspeed" in low or "gp-tech" in low
 
 
+def _is_alpinestars_tech_boot(slug: str) -> bool:
+    """True for any Alpinestars Tech MX boot (Tech 5, Tech 7, Tech 10)."""
+    low = (slug or "").lower()
+    return "alpinestars" in low and "tech" in low and "boot" in low
+
+
 # For race suits, only recommend these helmet lines: Shoei X-15, AGV Pista, Alpinestars R10 (Supertech R).
 SUIT_ALLOWED_HELMET_KEYWORDS = ("x-15", "x-fifteen", "pista", "supertech-r", "r10")
 
@@ -707,6 +713,16 @@ def _suit_glove_matches_brand(glove_slug: str, suit_brand: str) -> bool:
 _RACE_HELMET_SUITS = [
     "alpinestars-fusion-1-piece-race-suit",
     "alpinestars-2025-missile-v2-1-piece-ignition-leather-suit",
+]
+_ALP_TECH_BOOT_HELMETS = [
+    "alpinestars-supertech-m10-deegan-monster-helmet",
+    "alpinestars-supertech-m10-unite-helmet",
+    "alpinestars-supertech-s-m7-core-helmet-ece06-dot",
+]
+_ALP_TECH_BOOT_JERSEYS = [
+    "alpinestars-supertech-afd-mig-le-jersey",
+    "alpinestars-supertech-lipan-jersey",
+    "alpinestars-supertech-maker-jersey",
 ]
 
 # Hardcoded suit recommendation pools — these are picked directly for any race suit.
@@ -1092,6 +1108,15 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     # Race suits always get the fixed helmet/gloves/boots pool — no other logic needed.
     if _is_race_suit(product_id):
         return _pick_suit_recommendations(product_id)
+
+    if _is_alpinestars_tech_boot(product_id):
+        idx = hash(product_id)
+        helmet_slug = _ALP_TECH_BOOT_HELMETS[idx % len(_ALP_TECH_BOOT_HELMETS)]
+        jersey_slug = _ALP_TECH_BOOT_JERSEYS[idx % len(_ALP_TECH_BOOT_JERSEYS)]
+        return [
+            {"id": helmet_slug, "label": "Complements your boots", "priority": "Primary"},
+            {"id": jersey_slug, "label": "Complements your boots", "priority": "Secondary"},
+        ]
 
     with _RULES_LOCK:
         rec_tier_map = _RULES_CACHE.get("rec_tier_map") or {}

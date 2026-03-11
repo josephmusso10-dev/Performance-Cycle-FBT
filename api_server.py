@@ -1781,6 +1781,38 @@ def simulate():
                 "url": item.get("url") or _build_storefront_url(slug),
                 "image": item.get("image") or "",
             }
+        # Always pin these helmets so they appear in the demo regardless of catalog ranking.
+        _PINNED_HELMET_SLUGS = [
+            # Leatt helmet kits
+            "leatt-9-5-adv-v25-carbon-helmet-kit-2025",
+            "leatt-moto-9-5-v25-carbon-helmet-kit",
+            "leatt-moto-8-5-v25-composite-helmet-kit",
+            # HJC helmets
+            "hjc-rpha-1n-jerez-redbull-helmet",
+            "hjc-rpha-91-carbon-helmet",
+            "hjc-2025-rpha-91-mc-21-helmet",
+            "hjc-2025-rpha-12n-carbon-helmet",
+            "hjc-2025-rpha-60-helmet",
+            "hjc-2025-rpha-60-dakar-helmet",
+            "hjc-f-71-helmet",
+            "hjc-2025-i-80-helmet",
+            # KYT helmets
+            "kyt-2025-kx-1-race-gp-full-carbon-helmet-876k",
+            "kyt-2025-kx-1-race-gp-helmet-3e6t",
+            "kyt-2025-nz-race-carbon-helmet-fqlb",
+            "kyt-nz-race-blazing-red-helmet",
+            "kyt-nz-race-matte-black-helmet-i8ee",
+            "kyt-2025-tt-revo-replica-helmet-oip5",
+        ]
+        for pin_slug in _PINNED_HELMET_SLUGS:
+            if pin_slug not in sample_catalog and pin_slug in catalog_map:
+                item = catalog_map[pin_slug]
+                sample_catalog[pin_slug] = {
+                    "name": item.get("name") or pin_slug,
+                    "price": item.get("price"),
+                    "url": item.get("url") or _build_storefront_url(pin_slug),
+                    "image": item.get("image") or "",
+                }
     else:
         # Local fallback if catalog auth is missing.
         sample_catalog = {

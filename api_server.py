@@ -1601,6 +1601,16 @@ def get_recommendations(product_id: str, explicit_map: dict, category_rules: lis
         if key in explicit_map:
             return _apply_recommendation_constraints(product_id, explicit_map[key])
 
+    # Hardcoded fallback for Shoei RF-1400 variants with no explicit CSV entry:
+    # always recommend a visor, comms system, and gloves.
+    pid_low = (product_id or "").lower()
+    if "shoei" in pid_low and "rf-1400" in pid_low and "helmet" in pid_low:
+        return [
+            {"id": "shoei-rf-1400-helmet-photochromic-shield-cwr-f2", "label": "Complements your helmet", "priority": "Primary"},
+            {"id": "sena-50s-communication-system-with-harman-kardon-speakers-dual-pack", "label": "Complements your helmet", "priority": "Secondary"},
+            {"id": "alpinestars-smx-2-air-carbon-v2-gloves", "label": "Complements your helmet", "priority": "Tertiary"},
+        ]
+
     # 2) Category fallback rows from CSV
     pid_lower = product_id.lower()
     for keywords, recs in category_rules:

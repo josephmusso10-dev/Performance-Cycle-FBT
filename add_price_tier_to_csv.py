@@ -27,6 +27,7 @@ Usage:
 """
 
 import csv
+import math
 import os
 import sys
 import argparse
@@ -104,15 +105,22 @@ def _fetch_catalog_prices() -> dict:
         "X-Auth-Token": access_token,
         "Accept": "application/json",
     }
+    limit = 250
     prices = {}
     page = 1
+    total_pages = None
     print("Fetching catalog prices from BigCommerce...")
     while True:
         try:
             resp = requests.get(
                 f"{bc_api_path}/catalog/products",
                 headers=headers,
-                params={"page": page, "limit": 250, "is_visible": True},
+                params={
+                    "page": page,
+                    "limit": limit,
+                    "is_visible": True,
+                    "include_fields": "id,name,price,custom_url",
+                },
                 timeout=30,
             )
             resp.raise_for_status()
@@ -120,7 +128,8 @@ def _fetch_catalog_prices() -> dict:
         except Exception as exc:
             print(f"  Catalog fetch error (page {page}): {exc}", file=sys.stderr)
             break
-        for row in payload.get("data", []):
+        rows = payload.get("data", [])
+        for row in rows:
             custom_url = (row.get("custom_url") or {}).get("url") or ""
             slug = custom_url.strip("/")
             price = row.get("price")
@@ -130,7 +139,14 @@ def _fetch_catalog_prices() -> dict:
                 except (TypeError, ValueError):
                     pass
         meta = payload.get("meta", {}).get("pagination", {})
-        if page >= meta.get("total_pages", page):
+        if total_pages is None:
+            total_pages = meta.get("total_pages")
+            if total_pages is None and meta.get("total") is not None:
+                total = int(meta["total"])
+                total_pages = math.ceil(total / limit) if total else 1
+            if total_pages is None:
+                total_pages = 1
+        if page >= total_pages or not rows:
             break
         page += 1
     print(f"  Fetched prices for {len(prices)} catalog products.")

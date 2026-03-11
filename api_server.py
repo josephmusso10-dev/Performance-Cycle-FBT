@@ -77,6 +77,7 @@ PRODUCT_TYPE_RULES = [
     ("luggage", ["tail-bag", "tail bag", "tank-bag", "tank bag", "drypack", "duffel", "fender-bag", "fender pack", "tool-pack", "tool pack", "toolbag", "fanny", "waist pack", "hip pack", "sling"]),
     ("backpack", ["backpack", "luggage", "airbag"]),
     ("communication", ["communication", "intercom", "bluetooth", "headset", "sena", "cardo", "boss audio"]),
+    ("knee_brace", ["knee-brace", "knee brace", "braces-pair"]),
     ("protection", ["protector", "armor", "armour", "chest", "back protector"]),
     ("air_filter", ["air-filter", "air filter", "filter"]),
     ("oil", ["oil", "lubricant", "lube", "fork-oil", "transmission-oil"]),
@@ -104,6 +105,7 @@ RUNTIME_COMPLEMENTARY_TYPES = {
     "luggage": ["backpack", "hydration"],
     "communication": ["helmet_accessory", "gloves"],
     "protection": ["jacket", "pants", "gloves"],
+    "knee_brace": ["protection", "knee_brace"],
     "care": ["helmet_accessory", "backpack"],
     "tshirt": ["tshirt", "hat"],
     "hat": ["tshirt", "hat"],
@@ -639,8 +641,10 @@ def _is_race_suit(product_id: str) -> bool:
 
 
 def _is_alpinestars_tech_boot(slug: str) -> bool:
-    """True for any Alpinestars Tech MX boot (Tech 5, Tech 7, Tech 10)."""
+    """True for Alpinestars MX Tech boots (Tech 5, Tech 7, Tech 10). NOT Supertech street boots."""
     low = (slug or "").lower()
+    if "supertech" in low:
+        return False
     return "alpinestars" in low and "tech" in low and "boot" in low
 
 

@@ -1720,17 +1720,31 @@ def simulate():
     catalog_map = _get_catalog_map()
     sample_catalog = {}
     if catalog_map:
-        # Pick a broad sample: start with image-backed products sorted by price desc.
-        rows = []
+        # Build a balanced sample: bucket by product type, pick up to 10 per type,
+        # prefer items with images. This ensures dirt helmets, jerseys, oils etc.
+        # all appear even though they are cheaper than race suits and helmets.
+        from collections import defaultdict as _dd
+        type_buckets = _dd(list)
         for slug, item in catalog_map.items():
-            price = float(item.get("price") or 0.0)
-            rows.append((slug, price, item))
-        rows.sort(key=lambda x: x[1], reverse=True)
-        # Keep first N with images first, then fill with any.
-        with_image = [r for r in rows if (r[2].get("image") or "").strip()]
-        without_image = [r for r in rows if not (r[2].get("image") or "").strip()]
-        picked = (with_image[:60] + without_image[:20])[:80]
-        for slug, _, item in picked:
+            ptype = _detect_product_type(slug)
+            has_img = bool((item.get("image") or "").strip())
+            type_buckets[ptype].append((has_img, slug, item))
+        # Sort each bucket: images first, then by price desc within each group.
+        picked_slugs = set()
+        picked = []
+        PER_TYPE = 10
+        for ptype, bucket in type_buckets.items():
+            bucket.sort(key=lambda x: (not x[0], -float(x[2].get("price") or 0)))
+            for has_img, slug, item in bucket[:PER_TYPE]:
+                picked.append((slug, item))
+                picked_slugs.add(slug)
+        # Fill remaining up to 120 from whatever is left (images preferred).
+        extras = sorted(
+            [(slug, item) for slug, item in catalog_map.items() if slug not in picked_slugs],
+            key=lambda x: (not bool((x[1].get("image") or "").strip()), -float(x[1].get("price") or 0)),
+        )
+        picked += extras[:max(0, 120 - len(picked))]
+        for slug, item in picked[:120]:
             sample_catalog[slug] = {
                 "name": item.get("name") or slug,
                 "price": item.get("price"),

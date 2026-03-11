@@ -111,6 +111,29 @@ PARTS_TYPES = {"air_filter", "oil", "tire", "brake", "chain", "parts"}
 # Types for which we never filter by price tier — if they pass all other rules, always recommend them.
 TIER_EXEMPT_TYPES = {"parts", "oil", "chain", "air_filter", "brake", "helmet_accessory", "care"}
 VALID_TIERS = {"budget", "mid", "premium", "elite"}
+# Per-type tier bands (budget_max, mid_max, premium_max) for catalog fallback tier.
+TIER_BANDS = {
+    "helmet": (150, 350, 600),
+    "jacket": (150, 300, 600),
+    "pants": (100, 200, 400),
+    "boots": (150, 300, 500),
+    "gloves": (50, 100, 200),
+    "jersey": (40, 80, 150),
+    "tire": (100, 180, 300),
+    "luggage": (100, 250, 500),
+    "backpack": (75, 150, 300),
+    "hydration": (50, 100, 200),
+    "communication": (100, 300, 600),
+    "protection": (75, 150, 300),
+    "parts": (50, 150, 350),
+    "oil": (25, 50, 100),
+    "chain": (80, 180, 350),
+    "brake": (80, 180, 400),
+    "air_filter": (40, 80, 150),
+    "care": (25, 50, 100),
+    "helmet_accessory": (50, 120, 250),
+    "default": (75, 200, 500),
+}
 BACKPACK_ALLOWED_TYPES = {"hydration", "luggage"}
 HELMET_ACCESSORY_ALLOWED_TYPES = {"helmet_accessory", "backpack", "care", "gloves"}
 VEHICLE_SPECIFIC_TERMS = {
@@ -303,6 +326,39 @@ def _fetch_bigcommerce_catalog_map():
             break
         page += 1
     return out
+
+
+def _tier_from_price(product_type: str, price: float) -> str:
+    """Return tier (budget/mid/premium/elite) for a product type and price."""
+    bands = TIER_BANDS.get(product_type, TIER_BANDS["default"])
+    budget_max, mid_max, premium_max = bands
+    if price < budget_max:
+        return "budget"
+    if price < mid_max:
+        return "mid"
+    if price < premium_max:
+        return "premium"
+    return "elite"
+
+
+def _get_source_tier_from_catalog(product_id: str):
+    """
+    When CSV has no Source Tier for this product, try to derive it from the
+    BigCommerce catalog (price + product type). Returns tier string or None.
+    """
+    catalog_map = _get_catalog_map()
+    if not catalog_map:
+        return None
+    for key in _candidate_catalog_keys(product_id):
+        if key in catalog_map:
+            item = catalog_map[key]
+            try:
+                price = float(item.get("price") or 0)
+            except (TypeError, ValueError):
+                return None
+            ptype = _detect_product_type(product_id)
+            return _tier_from_price(ptype, price)
+    return None
 
 
 def _get_catalog_map(force_refresh: bool = False):
@@ -773,7 +829,11 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     with _RULES_LOCK:
         rec_tier_map = _RULES_CACHE.get("rec_tier_map") or {}
         source_tier_map = _RULES_CACHE.get("source_tier_map") or {}
-    source_tier = source_tier_map.get(product_id) or rec_tier_map.get(product_id)
+    source_tier = (
+        source_tier_map.get(product_id)
+        or rec_tier_map.get(product_id)
+        or _get_source_tier_from_catalog(product_id)
+    )
 
     source_type = _detect_product_type(product_id)
     source_brand = _extract_brand_token(product_id)

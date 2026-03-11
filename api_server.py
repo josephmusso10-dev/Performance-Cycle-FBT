@@ -1038,7 +1038,9 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                     continue
                 if source_type == "backpack" and rec_type == "backpack":
                     continue
-                if source_type == "helmet" and rec_type in {"helmet", "helmet_accessory"}:
+                if source_type == "helmet" and rec_type == "helmet":
+                    continue
+                if source_type == "helmet" and rec_type == "helmet_accessory":
                     rec_brand = _extract_brand_token(rid)
                     if source_brand and rec_brand and source_brand != rec_brand:
                         continue
@@ -1086,7 +1088,9 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                 continue
             if source_type == "backpack" and rec_type == "backpack":
                 continue
-            if source_type == "helmet" and rec_type in {"helmet", "helmet_accessory"}:
+            if source_type == "helmet" and rec_type == "helmet":
+                continue
+            if source_type == "helmet" and rec_type == "helmet_accessory":
                 rec_brand = _extract_brand_token(rid)
                 if source_brand and rec_brand and source_brand != rec_brand:
                     continue
@@ -1218,7 +1222,10 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
             continue
 
         # Helmet accessories must always match helmet brand (fit-sensitive).
-        if source_type == "helmet" and rec_type in {"helmet", "helmet_accessory"}:
+        # A helmet must never recommend another helmet.
+        if source_type == "helmet" and rec_type == "helmet":
+            continue
+        if source_type == "helmet" and rec_type == "helmet_accessory":
             if source_brand and rec_brand and source_brand != rec_brand:
                 continue
         # Visors/shields only recommend other visors (same brand only), backpacks, gloves, and care.
@@ -1439,6 +1446,8 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         exclude_types = {t for t in _GLOBAL_REC_BY_TYPE if t not in {"tshirt", "hat"}}
     else:
         exclude_types = set()
+    if source_type == "helmet":
+        exclude_types = exclude_types | {"helmet"}
     if _is_no_tire_vehicle(product_id):
         exclude_types = exclude_types | {"tire"}
     while len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:

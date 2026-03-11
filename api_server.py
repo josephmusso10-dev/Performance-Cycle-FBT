@@ -1167,6 +1167,9 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
             continue
         if source_type == "backpack" and rec_type == "backpack":
             continue
+        # T-shirts and hats only ever recommend other t-shirts and hats.
+        if source_type in {"tshirt", "hat"} and rec_type not in {"tshirt", "hat"}:
+            continue
 
         # Helmet accessories must always match helmet brand (fit-sensitive).
         if source_type == "helmet" and rec_type in {"helmet", "helmet_accessory"}:
@@ -1384,7 +1387,12 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     # Try any other unseen type if desired map didn't fill all slots.
     boots_filter = "smx" if source_is_suit else None
     helmet_filter = SUIT_ALLOWED_HELMET_KEYWORDS if source_is_suit else None
-    exclude_types = {"pants", "jacket", "helmet_accessory", "communication"} if source_is_suit else set()
+    if source_is_suit:
+        exclude_types = {"pants", "jacket", "helmet_accessory", "communication"}
+    elif source_type in {"tshirt", "hat"}:
+        exclude_types = {t for t in _GLOBAL_REC_BY_TYPE if t not in {"tshirt", "hat"}}
+    else:
+        exclude_types = set()
     while len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:
         rid, rec_type = _pick_global_candidate_any(product_id, source_type, source_brand, source_riding, source_street_subtype, source_dirt_subtype, selected_ids, seen_types, source_tier=source_tier, rec_tier_map=rec_tier_map, boots_slug_must_contain=boots_filter, helmet_slug_any_of=helmet_filter, gloves_racing_only=source_is_racing, exclude_types=exclude_types, source_is_suit=source_is_suit, apparel_race_only=source_is_race_helmet)
         if not rid:

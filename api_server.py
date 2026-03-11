@@ -654,8 +654,9 @@ def _is_racing_glove(slug: str) -> bool:
 
 
 def _is_race_helmet(product_id: str) -> bool:
-    """True if product is a race-level helmet: Shoei X-15, AGV Pista, Alpinestars Supertech R10."""
-    return bool(product_id) and _detect_product_type(product_id) == "helmet" and _helmet_allowed_for_suit(product_id)
+    """True if product is a race-level helmet: Shoei X-15, AGV Pista, Alpinestars Supertech R10.
+    Does NOT require 'helmet' in the slug — some AGV Pista slugs omit it."""
+    return bool(product_id) and _helmet_allowed_for_suit(product_id)
 
 
 def _is_race_grade_apparel(slug: str) -> bool:
@@ -1087,8 +1088,14 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     source_street_subtype = _detect_street_subtype(product_id)
     source_dirt_subtype = _detect_dirt_subtype(product_id)
     source_is_suit = _is_race_suit(product_id)
-    source_is_racing = _is_racing_source(product_id)
     source_is_race_helmet = _is_race_helmet(product_id)
+    # If the slug doesn't contain "helmet" (e.g. agv-pista-gp-rr-soleluna-2023-limited-edition),
+    # _detect_product_type returns "unknown". Override to "helmet" for race helmets.
+    if source_is_race_helmet and source_type == "unknown":
+        source_type = "helmet"
+        if source_riding == "unknown":
+            source_riding = "street"
+    source_is_racing = _is_racing_source(product_id)
     ordered = _sort_by_priority(recommendations)
 
     filtered = []
@@ -1182,7 +1189,8 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     selected_ids = set()
     seen_types = set()
 
-    if source_type == "helmet" and source_riding != "dirt":
+    # Race helmets (X-15, Pista, R-10) pair with racing gear, not comm systems.
+    if source_type == "helmet" and source_riding != "dirt" and not source_is_race_helmet:
         comm_id = _pick_tiered_comm(product_id, selected_ids)
         if comm_id:
             selected.append({"id": comm_id, "label": "Pairs with your helmet", "priority": "Secondary"})
@@ -1322,6 +1330,8 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
             desired_types = ["jersey", "pants", "gloves"]
         elif source_is_suit:
             desired_types = ["gloves", "boots", "helmet"]
+        elif source_is_race_helmet:
+            desired_types = ["jacket", "gloves", "boots"]
         else:
             desired_types = RUNTIME_COMPLEMENTARY_TYPES.get(source_type, [])
         boots_filter = "smx" if source_is_suit else None
@@ -2000,7 +2010,14 @@ def get_frequently_bought_together():
                 ):
                     rec_info[rid]["priority"] = incoming
 
-    cart_types = {_detect_product_type(pid) for pid in cart_product_ids}
+    cart_types = set()
+    for pid in cart_product_ids:
+        ptype = _detect_product_type(pid)
+        cart_types.add(ptype)
+        # Some helmet slugs (e.g. agv-pista-gp-rr-soleluna) don't contain "helmet";
+        # detect them via race-helmet keywords so same-type filtering still works.
+        if _is_race_helmet(pid):
+            cart_types.add("helmet")
     recommendations = [
         {"id": rid, "label": info["label"] or None, "priority": info.get("priority") or None}
         for rid, info in sorted(

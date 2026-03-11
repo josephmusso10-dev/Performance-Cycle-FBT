@@ -238,6 +238,46 @@ def detect_type_from_text(value: str) -> str:
     return "other"
 
 
+# Per-type tier bands matching api_server.py CATEGORY_PRICE_TIERS logic.
+# Thresholds are (budget_max, mid_max, premium_max); price >= premium_max → elite.
+_SYNC_TIER_BANDS = {
+    "helmet":           (150,  350,  600),
+    "jacket":           (150,  300,  600),
+    "pants":            (100,  200,  400),
+    "boots":            (150,  300,  500),
+    "gloves":           (50,   100,  200),
+    "jersey":           (40,   80,   150),
+    "tire":             (100,  180,  300),
+    "luggage":          (100,  250,  500),
+    "backpack":         (75,   150,  300),
+    "hydration":        (50,   100,  200),
+    "communication":    (100,  300,  600),
+    "protection":       (75,   150,  300),
+    "parts":            (50,   150,  350),
+    "oil":              (25,   50,   100),
+    "chain":            (80,   180,  350),
+    "brake":            (80,   180,  400),
+    "air_filter":       (40,   80,   150),
+    "care":             (25,   50,   100),
+    "helmet_accessory": (50,   120,  250),
+    "default":          (75,   200,  500),
+}
+
+
+def get_price_tier(rec_slug: str, price: float) -> str:
+    """Return the price tier for a recommendation based on its type and price."""
+    product_type = detect_type_from_text(rec_slug)
+    bands = _SYNC_TIER_BANDS.get(product_type, _SYNC_TIER_BANDS["default"])
+    budget_max, mid_max, premium_max = bands
+    if price < budget_max:
+        return "budget"
+    if price < mid_max:
+        return "mid"
+    if price < premium_max:
+        return "premium"
+    return "elite"
+
+
 def detect_riding_type(product: Product) -> str:
     hay = " ".join(
         [
@@ -602,6 +642,7 @@ def main():
                 "Type": "Explicit",
                 "Priority": PRIORITIES[idx] if idx < len(PRIORITIES) else "",
                 "Estimated Price": f"{rec.price:.2f}",
+                "Price Tier": get_price_tier(rec.slug, rec.price),
                 "Source Riding Type": rtype,
                 "Recommended Riding Type": riding_type.get(rec.slug, "unknown"),
             })
@@ -628,13 +669,20 @@ def main():
             continue
         if source_riding == "street" and source_street_subtype == "race" and rec_street_subtype == "touring":
             continue
+        raw_price = (row.get("Estimated Price") or "").strip()
+        try:
+            cat_price = float(raw_price)
+        except (ValueError, TypeError):
+            cat_price = 0.0
+        cat_rec_slug = row.get("Recommended Product ID", "")
         out_rows.append({
             "Product ID": row.get("Product ID", ""),
-            "Recommended Product ID": row.get("Recommended Product ID", ""),
+            "Recommended Product ID": cat_rec_slug,
             "Label": row.get("Label", ""),
             "Type": "Category",
             "Priority": row.get("Priority", ""),
             "Estimated Price": row.get("Estimated Price", ""),
+            "Price Tier": row.get("Price Tier") or get_price_tier(cat_rec_slug, cat_price),
             "Source Riding Type": row.get("Source Riding Type", ""),
             "Recommended Riding Type": row.get("Recommended Riding Type", ""),
         })
@@ -649,6 +697,7 @@ def main():
                 "Type",
                 "Priority",
                 "Estimated Price",
+                "Price Tier",
                 "Source Riding Type",
                 "Recommended Riding Type",
             ],

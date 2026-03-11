@@ -44,6 +44,7 @@ _RULES_LOCK = threading.Lock()
 _RULES_CACHE = {
     "explicit_map": {},
     "category_rules": [],
+    "rec_tier_map": {},
     "fetched_at": 0.0,
     "source": "local",
     "last_error": None,
@@ -105,6 +106,9 @@ GEAR_TYPES = {
     "backpack", "communication", "protection",
 }
 PARTS_TYPES = {"air_filter", "oil", "tire", "brake", "chain", "parts"}
+# Types for which we never filter by price tier — if they pass all other rules, always recommend them.
+TIER_EXEMPT_TYPES = {"parts", "oil", "chain", "air_filter", "brake", "helmet_accessory", "care"}
+VALID_TIERS = {"budget", "mid", "premium", "elite"}
 BACKPACK_ALLOWED_TYPES = {"hydration", "luggage"}
 HELMET_ACCESSORY_ALLOWED_TYPES = {"helmet_accessory", "backpack", "care", "gloves"}
 VEHICLE_SPECIFIC_TERMS = {
@@ -525,8 +529,17 @@ def _refresh_global_rec_pool(explicit_map: dict, category_rule_list: list) -> No
         _GLOBAL_REC_BY_TYPE[rec_type] = ids
 
 
-def _pick_global_candidate(source_product_id: str, source_type: str, source_brand: str, source_riding: str, source_street_subtype: str, source_dirt_subtype: str, rec_type: str, selected_ids: set) -> str:
+def _pick_global_candidate(source_product_id: str, source_type: str, source_brand: str, source_riding: str, source_street_subtype: str, source_dirt_subtype: str, rec_type: str, selected_ids: set, source_tier: str = None, rec_tier_map: dict = None) -> str:
+    rec_tier_map = rec_tier_map or {}
     candidates = _GLOBAL_REC_BY_TYPE.get(rec_type, [])
+
+    def _tier_ok(rid):
+        if not source_tier:
+            return True
+        if source_type in TIER_EXEMPT_TYPES or rec_type in TIER_EXEMPT_TYPES:
+            return True
+        return rec_tier_map.get(rid) == source_tier
+
     # Special fallback preference:
     # For jacket/pants -> gloves, if same-brand gloves are unavailable,
     # prefer Alpinestars gloves.
@@ -536,6 +549,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
                 continue
             if rid == source_product_id:
                 continue
+            if not _tier_ok(rid):
+                continue
             rec_brand = _extract_brand_token(rid)
             if source_brand and rec_brand == source_brand:
                 return rid
@@ -544,6 +559,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
                 continue
             if rid == source_product_id:
                 continue
+            if not _tier_ok(rid):
+                continue
             rec_brand = _extract_brand_token(rid)
             if rec_brand == "alpinestars":
                 return rid
@@ -551,6 +568,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
     # First pass: prefer same brand
     for rid in candidates:
         if rid in selected_ids or rid == source_product_id:
+            continue
+        if not _tier_ok(rid):
             continue
         if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
             continue
@@ -583,6 +602,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
     viable = []
     for rid in candidates:
         if rid in selected_ids or rid == source_product_id:
+            continue
+        if not _tier_ok(rid):
             continue
         if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
             continue
@@ -625,7 +646,16 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
     return ""
 
 
-def _pick_global_candidate_any(source_product_id: str, source_type: str, source_brand: str, source_riding: str, source_street_subtype: str, source_dirt_subtype: str, selected_ids: set, used_types: set) -> tuple:
+def _pick_global_candidate_any(source_product_id: str, source_type: str, source_brand: str, source_riding: str, source_street_subtype: str, source_dirt_subtype: str, selected_ids: set, used_types: set, source_tier: str = None, rec_tier_map: dict = None) -> tuple:
+    rec_tier_map = rec_tier_map or {}
+
+    def _tier_ok(rid, rec_type):
+        if not source_tier:
+            return True
+        if source_type in TIER_EXEMPT_TYPES or rec_type in TIER_EXEMPT_TYPES:
+            return True
+        return rec_tier_map.get(rid) == source_tier
+
     # First pass: prefer same brand for gear-to-gear
     if source_type in GEAR_TYPES and source_brand:
         for rec_type, candidates in _GLOBAL_REC_BY_TYPE.items():
@@ -633,6 +663,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                 continue
             for rid in candidates:
                 if rid in selected_ids or rid == source_product_id:
+                    continue
+                if not _tier_ok(rid, rec_type):
                     continue
                 if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
                     continue
@@ -675,6 +707,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
             continue
         for rid in candidates:
             if rid in selected_ids or rid == source_product_id:
+                continue
+            if not _tier_ok(rid, rec_type):
                 continue
             if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
                 continue
@@ -719,7 +753,12 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     Runtime constraints:
     - For jacket/pants sources, jacket/pants recommendations must match source brand.
     - Return up to 3 recommendations with preference for distinct product types.
+    - Price tier: when source has a tier and both source/rec are not tier-exempt, require matching tier.
     """
+    with _RULES_LOCK:
+        rec_tier_map = _RULES_CACHE.get("rec_tier_map") or {}
+    source_tier = rec_tier_map.get(product_id)
+
     source_type = _detect_product_type(product_id)
     source_brand = _extract_brand_token(product_id)
     source_riding = _detect_riding_type(product_id)
@@ -790,6 +829,13 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         # Do not recommend youth products for adult products (and vice versa).
         if _is_youth_product(rid) != _is_youth_product(product_id):
             continue
+        # Price tier: only enforce when source has a tier and neither type is tier-exempt.
+        if (source_tier and
+                source_type not in TIER_EXEMPT_TYPES and
+                rec_type not in TIER_EXEMPT_TYPES):
+            rec_tier = rec.get("tier") or rec_tier_map.get(rid)
+            if rec_tier != source_tier:
+                continue
         filtered.append(rec)
 
     # For helmets, always reserve one slot for a price-tiered comm system (street only).
@@ -836,6 +882,12 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
                 rt = _detect_riding_type(rid)
                 if source_riding in {"street", "dirt"} and rt != source_riding:
                     continue
+                rid_type = _detect_product_type(rid)
+                if (source_tier and
+                        source_type not in TIER_EXEMPT_TYPES and
+                        rid_type not in TIER_EXEMPT_TYPES):
+                    if rec_tier_map.get(rid) != source_tier:
+                        continue
                 viable.append(rid)
             if not viable:
                 continue
@@ -901,7 +953,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         for desired_type in desired_types:
             if desired_type in seen_types:
                 continue
-            rid = _pick_global_candidate(product_id, source_type, source_brand, source_riding, source_street_subtype, source_dirt_subtype, desired_type, selected_ids)
+            rid = _pick_global_candidate(product_id, source_type, source_brand, source_riding, source_street_subtype, source_dirt_subtype, desired_type, selected_ids, source_tier=source_tier, rec_tier_map=rec_tier_map)
             if not rid:
                 continue
             selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})
@@ -911,6 +963,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
                 break
 
     # For helmets, fill remaining slots with same-brand helmet accessories.
+    # helmet_accessory is tier-exempt so we never filter by tier here.
     if source_type == "helmet" and len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:
         ha_candidates = _GLOBAL_REC_BY_TYPE.get("helmet_accessory", [])
         for rid in ha_candidates:
@@ -928,7 +981,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
 
     # Try any other unseen type if desired map didn't fill all slots.
     while len(selected) < PER_PRODUCT_RECOMMENDATION_LIMIT:
-        rid, rec_type = _pick_global_candidate_any(product_id, source_type, source_brand, source_riding, source_street_subtype, source_dirt_subtype, selected_ids, seen_types)
+        rid, rec_type = _pick_global_candidate_any(product_id, source_type, source_brand, source_riding, source_street_subtype, source_dirt_subtype, selected_ids, seen_types, source_tier=source_tier, rec_tier_map=rec_tier_map)
         if not rid:
             break
         selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})
@@ -941,6 +994,7 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
 def _build_rules_from_reader(reader):
     explicit_map = {}
     category_rules = {}
+    rec_tier_map = {}
     for row in reader:
         product_id = (row.get("Product ID") or "").strip()
         rec_id = (row.get("Recommended Product ID") or "").strip()
@@ -951,7 +1005,12 @@ def _build_rules_from_reader(reader):
             continue
 
         priority = (row.get("Priority") or "").strip()
+        tier = (row.get("Price Tier") or "").strip().lower()
         rec = {"id": rec_id, "label": label, "priority": priority}
+        if tier in VALID_TIERS:
+            rec["tier"] = tier
+            rec_tier_map[rec_id] = tier
+
         if row_type == "category":
             keywords = tuple(_parse_category_keywords(product_id))
             if not keywords:
@@ -961,25 +1020,25 @@ def _build_rules_from_reader(reader):
             explicit_map.setdefault(product_id, []).append(rec)
 
     category_rule_list = [(list(keywords), recs) for keywords, recs in category_rules.items()]
-    return explicit_map, category_rule_list
+    return explicit_map, category_rule_list, rec_tier_map
 
 
 def _load_rules_from_local_csv():
     if not CSV_PATH.exists():
-        return {}, []
+        return {}, [], {}
     with open(CSV_PATH, newline="", encoding="utf-8-sig") as f:
-        explicit_map, category_rule_list = _build_rules_from_reader(csv.DictReader(f))
+        explicit_map, category_rule_list, rec_tier_map = _build_rules_from_reader(csv.DictReader(f))
         _refresh_global_rec_pool(explicit_map, category_rule_list)
-        return explicit_map, category_rule_list
+        return explicit_map, category_rule_list, rec_tier_map
 
 
 def _fetch_rules_from_remote_csv():
     response = requests.get(CSV_URL, timeout=CSV_TIMEOUT_SECONDS)
     response.raise_for_status()
     payload = response.text
-    explicit_map, category_rule_list = _build_rules_from_reader(csv.DictReader(io.StringIO(payload)))
+    explicit_map, category_rule_list, rec_tier_map = _build_rules_from_reader(csv.DictReader(io.StringIO(payload)))
     _refresh_global_rec_pool(explicit_map, category_rule_list)
-    return explicit_map, category_rule_list
+    return explicit_map, category_rule_list, rec_tier_map
 
 
 def _load_rules_from_csv(force_refresh: bool = False):
@@ -990,10 +1049,11 @@ def _load_rules_from_csv(force_refresh: bool = False):
     """
     # Local-only mode: read local CSV every request (existing behavior).
     if not CSV_URL:
-        explicit_map, category_rules = _load_rules_from_local_csv()
+        explicit_map, category_rules, rec_tier_map = _load_rules_from_local_csv()
         with _RULES_LOCK:
             _RULES_CACHE["explicit_map"] = explicit_map
             _RULES_CACHE["category_rules"] = category_rules
+            _RULES_CACHE["rec_tier_map"] = rec_tier_map
             _RULES_CACHE["fetched_at"] = time.time()
             _RULES_CACHE["source"] = "local"
             _RULES_CACHE["last_error"] = None
@@ -1008,10 +1068,11 @@ def _load_rules_from_csv(force_refresh: bool = False):
 
     # Remote mode: refresh from URL with stale-cache fallback.
     try:
-        explicit_map, category_rules = _fetch_rules_from_remote_csv()
+        explicit_map, category_rules, rec_tier_map = _fetch_rules_from_remote_csv()
         with _RULES_LOCK:
             _RULES_CACHE["explicit_map"] = explicit_map
             _RULES_CACHE["category_rules"] = category_rules
+            _RULES_CACHE["rec_tier_map"] = rec_tier_map
             _RULES_CACHE["fetched_at"] = now
             _RULES_CACHE["source"] = "remote"
             _RULES_CACHE["last_error"] = None
@@ -1023,10 +1084,11 @@ def _load_rules_from_csv(force_refresh: bool = False):
                 return _RULES_CACHE["explicit_map"], _RULES_CACHE["category_rules"]
 
         # No remote cache yet; fall back to local file if present.
-        explicit_map, category_rules = _load_rules_from_local_csv()
+        explicit_map, category_rules, rec_tier_map = _load_rules_from_local_csv()
         with _RULES_LOCK:
             _RULES_CACHE["explicit_map"] = explicit_map
             _RULES_CACHE["category_rules"] = category_rules
+            _RULES_CACHE["rec_tier_map"] = rec_tier_map
             _RULES_CACHE["fetched_at"] = time.time()
             _RULES_CACHE["source"] = "local-fallback"
         return explicit_map, category_rules

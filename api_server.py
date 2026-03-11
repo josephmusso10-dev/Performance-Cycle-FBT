@@ -10,6 +10,7 @@ Call /api/fbt?products=id1,id2 to get recommended accessories for cart items.
 import csv
 import io
 import json
+import math
 import os
 import threading
 import time
@@ -260,12 +261,20 @@ def _fetch_bigcommerce_catalog_map():
         "Content-Type": "application/json",
     })
 
+    limit = 250
     out = {}
     page = 1
+    total_pages = None
     while True:
         resp = session.get(
             f"{base_path}/catalog/products",
-            params={"page": page, "limit": 250, "include": "primary_image", "is_visible": True},
+            params={
+                "page": page,
+                "limit": limit,
+                "include": "primary_image",
+                "is_visible": True,
+                "include_fields": "id,name,price,custom_url",
+            },
             timeout=CSV_TIMEOUT_SECONDS,
         )
         resp.raise_for_status()
@@ -284,8 +293,13 @@ def _fetch_bigcommerce_catalog_map():
                 "image": ((row.get("primary_image") or {}).get("url_standard") or ""),
             }
         meta = payload.get("meta", {}).get("pagination", {})
-        total_pages = meta.get("total_pages", page)
-        if page >= total_pages:
+        if total_pages is None:
+            total_pages = meta.get("total_pages")
+            if total_pages is None and meta.get("total") is not None:
+                total_pages = math.ceil(int(meta["total"]) / limit)
+            if total_pages is None:
+                total_pages = 1
+        if page >= total_pages or not rows:
             break
         page += 1
     return out

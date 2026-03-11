@@ -208,6 +208,7 @@ RIDING_TYPE_RULES = {
         "moto-9", "moto 9", "formula-cc",
         "6d",
         "gate", "moto 10", "lithium",
+        "flexair", "elevated",
         "pro air",  # dirt gear line (e.g. TCX RT-Race Pro Air boots, Troy Lee GP Pro Air)
     ],
     "street": [
@@ -239,7 +240,7 @@ RIDING_TYPE_RULES = {
 WOMENS_PRODUCT_KEYWORDS = ["womens", "women s", "ladies", "women's", "female"]
 YOUTH_PRODUCT_KEYWORDS = ["youth", "kids", "kid s", "child", "children", "junior", " jr", "-jr"]
 DIRT_ONLY_BRANDS = {
-    "fly", "fox", "fasthouse", "troy", "seven", "shift", "thor", "one", "leatt",
+    "fly", "fasthouse", "troy", "seven", "shift", "thor", "one", "leatt",
     "6d",
 }
 STREET_ONLY_BRANDS = {

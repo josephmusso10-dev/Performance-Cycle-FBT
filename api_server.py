@@ -1762,7 +1762,7 @@ def simulate():
         # Sort each bucket: images first, then by price desc within each group.
         picked_slugs = set()
         picked = []
-        PER_TYPE = 10
+        PER_TYPE = 20
         for ptype, bucket in type_buckets.items():
             bucket.sort(key=lambda x: (not x[0], -float(x[2].get("price") or 0)))
             for has_img, slug, item in bucket[:PER_TYPE]:
@@ -1795,6 +1795,26 @@ def simulate():
             "hjc-rpha-1-senin-helmet": {"name": "HJC RPHA 1 Senin Helmet", "price": 849.99},
             "shoei-neotec-3-satori-helmet": {"name": "Shoei Neotec 3 Satori Helmet", "price": 899.99},
             "schuberth-c5-eclipse-helmet": {"name": "Schuberth C5 Eclipse Helmet", "price": 749.99},
+            # --- HJC helmets ---
+            "hjc-rpha-1n-jerez-redbull-helmet": {"name": "HJC RPHA 1n Jerez RedBull Helmet", "price": 949.99},
+            "hjc-rpha-91-carbon-helmet": {"name": "HJC RPHA 91 Carbon Helmet", "price": 739.99},
+            "hjc-2025-rpha-91-mc-21-helmet": {"name": "HJC 2025 RPHA 91 MC-21 Helmet", "price": 709.99},
+            "hjc-2025-rpha-12n-carbon-helmet": {"name": "HJC 2025 RPHA 12n Carbon Helmet", "price": 629.99},
+            "hjc-2025-rpha-12n-quartararo-helmet": {"name": "HJC 2025 RPHA 12n Quartararo Helmet", "price": 699.99},
+            "hjc-2025-rpha-60-helmet": {"name": "HJC 2025 RPHA 60 Helmet", "price": 579.99},
+            "hjc-2025-rpha-60-dakar-helmet": {"name": "HJC 2025 RPHA 60 Dakar Helmet", "price": 619.99},
+            "hjc-f-71-helmet": {"name": "HJC F71 Helmet", "price": 409.99},
+            "hjc-f-71-arcan-helmet": {"name": "HJC F71 Arcan Helmet", "price": 439.99},
+            "hjc-2025-i-80-helmet": {"name": "HJC 2025 i80 Helmet", "price": 309.99},
+            "hjc-2025-i-80-roki-helmet": {"name": "HJC 2025 i80 Roki Helmet", "price": 339.99},
+            "hjc-2025-i-80-velly-helmet": {"name": "HJC 2025 i80 Velly Helmet", "price": 299.99},
+            # --- KYT helmets ---
+            "kyt-2025-kx-1-race-gp-full-carbon-helmet-876k": {"name": "KYT 2025 KX-1 Race GP Full Carbon Helmet", "price": 849.99},
+            "kyt-2025-kx-1-race-gp-helmet-3e6t": {"name": "KYT 2025 KX-1 Race GP Helmet", "price": 699.99},
+            "kyt-2025-nz-race-carbon-helmet-fqlb": {"name": "KYT 2025 NZ Race Carbon Helmet", "price": 549.99},
+            "kyt-2025-tt-revo-replica-helmet-oip5": {"name": "KYT 2025 TT-Revo Replica Helmet", "price": 179.99},
+            "kyt-nz-race-blazing-red-helmet": {"name": "KYT NZ Race Blazing Red Helmet", "price": 519.99},
+            "kyt-nz-race-matte-black-helmet-i8ee": {"name": "KYT NZ Race Matte Black Helmet", "price": 499.99},
             # --- Street helmets: mid/entry ---
             "agv-k6-s-excite-helmet": {"name": "AGV K6 S Excite Helmet", "price": 499.99},
             "hjc-rpha-71-mapos-helmet": {"name": "HJC RPHA 71 Mapos Helmet", "price": 449.99},
@@ -1808,6 +1828,8 @@ def simulate():
             "shoei-vfx-evo-pinnacle-offroad-helmet": {"name": "Shoei VFX-EVO Pinnacle Off-Road Helmet", "price": 679.99},
             "klim-f3-carbon-helmet-ecedot": {"name": "Klim F3 Carbon Helmet", "price": 499.99},
             "alpinestars-supertech-m10-deegan-monster-helmet": {"name": "Alpinestars Supertech M10 Deegan Helmet", "price": 919.95},
+            "alpinestars-supertech-m10-unite-helmet": {"name": "Alpinestars Supertech M10 Unite Helmet", "price": 839.95},
+            "alpinestars-supertech-s-m7-core-helmet-ece06-dot": {"name": "Alpinestars Supertech S-M7 Core Helmet", "price": 519.95},
             "fly-racing-formula-s-carbon-protocol-helmet": {"name": "Fly Racing Formula S Carbon Helmet", "price": 1019.95},
             "100-percent-status-helmet": {"name": "100% Status Helmet", "price": 299.95},
             "bell-moto-9s-flex-helmet": {"name": "Bell Moto-9S Flex Helmet", "price": 519.95},
@@ -1816,6 +1838,9 @@ def simulate():
             "leatt-9-5-adv-v25-carbon-helmet-kit-2025": {"name": "Leatt 9.5 ADV V25 Carbon Helmet Kit 2025", "price": 879.00},
             "leatt-moto-9-5-v25-carbon-helmet-kit": {"name": "Leatt Moto 9.5 V25 Carbon Helmet Kit", "price": 769.00},
             "leatt-moto-8-5-v25-composite-helmet-kit": {"name": "Leatt Moto 8.5 V25 Composite Helmet Kit", "price": 499.00},
+            "thor-sector-2-zero-helmet": {"name": "Thor Sector 2 Zero Helmet", "price": 199.95},
+            "answer-racing-ar1-pro-glow-helmet": {"name": "Answer AR1 Pro Glow Helmet", "price": 299.95},
+            "shift-white-label-trac-helmet": {"name": "Shift White Label Trac Helmet", "price": 249.95},
             # --- Helmet accessories ---
             "shoei-cwr-f2-pinlock-face-shield": {"name": "Shoei CWR-F2 Pinlock Face Shield", "price": 69.99},
             "agv-pista-gp-rr-visor-clear": {"name": "AGV Pista GP RR Visor Clear", "price": 149.99},

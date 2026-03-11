@@ -1216,8 +1216,42 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
                 break
         return selected
 
+    # Pre-pass: for gear sources pick same-brand items from the GLOBAL pool first,
+    # before any CSV-based filling. This ensures e.g. Klim jacket -> Klim pants
+    # even when the CSV explicit recs list Fox pants as Primary.
+    if source_type in GEAR_TYPES and source_brand:
+        desired_pre = RUNTIME_COMPLEMENTARY_TYPES.get(source_type, [])
+        for desired_type in desired_pre:
+            if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
+                break
+            if desired_type in seen_types:
+                continue
+            candidates = _GLOBAL_REC_BY_TYPE.get(desired_type, [])
+            for rid in candidates:
+                if rid in selected_ids or rid == product_id:
+                    continue
+                if _extract_brand_token(rid) != source_brand:
+                    continue
+                rec_rt = _detect_riding_type(rid)
+                if source_riding in {"street", "dirt"} and rec_rt not in {"unknown", source_riding}:
+                    continue
+                if _is_vehicle_specific(rid):
+                    continue
+                if _is_womens_product(rid) != _is_womens_product(product_id):
+                    continue
+                if _is_youth_product(rid) != _is_youth_product(product_id):
+                    continue
+                if (source_tier and source_type not in TIER_EXEMPT_TYPES and
+                        desired_type not in TIER_EXEMPT_TYPES):
+                    if rec_tier_map.get(rid) != source_tier:
+                        continue
+                selected.append({"id": rid, "label": "Recommended item", "priority": "Primary"})
+                selected_ids.add(rid)
+                seen_types.add(desired_type)
+                break
+
     # Fill remaining slots preferring distinct types.
-    # For gear sources, prefer same-brand gear first.
+    # For gear sources, prefer same-brand gear first (CSV filtered).
     if source_type in GEAR_TYPES and source_brand:
         for rec in filtered:
             rid = rec.get("id")

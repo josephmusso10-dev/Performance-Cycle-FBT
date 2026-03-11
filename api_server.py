@@ -347,11 +347,18 @@ def _get_source_tier_from_catalog(product_id: str):
     """
     When CSV has no Source Tier for this product, try to derive it from the
     BigCommerce catalog (price + product type). Returns tier string or None.
+    Tries variant slugs (e.g. arai-corsair-x-bracket-helmet -> arai-corsair-x-helmet).
     """
     catalog_map = _get_catalog_map()
     if not catalog_map:
         return None
-    for key in _candidate_catalog_keys(product_id):
+    # Try format variants first, then shorter/base slug candidates.
+    keys_to_try = list(_candidate_catalog_keys(product_id))
+    for candidate in _source_lookup_candidates(product_id):
+        for key in _candidate_catalog_keys(candidate):
+            if key not in keys_to_try:
+                keys_to_try.append(key)
+    for key in keys_to_try:
         if key in catalog_map:
             item = catalog_map[key]
             try:
@@ -363,6 +370,23 @@ def _get_source_tier_from_catalog(product_id: str):
     return None
 
 
+_CATALOG_JSON_PATH = DATA_DIR / "data" / "catalog.json"
+
+
+def _load_catalog_from_file() -> dict:
+    """Load catalog from build-time data/catalog.json if it exists."""
+    if not _CATALOG_JSON_PATH.exists():
+        return {}
+    try:
+        with open(_CATALOG_JSON_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict) and data:
+            return data
+    except Exception:
+        pass
+    return {}
+
+
 def _get_catalog_map(force_refresh: bool = False):
     now = time.time()
     with _RULES_LOCK:
@@ -371,6 +395,31 @@ def _get_catalog_map(force_refresh: bool = False):
         if not force_refresh and has_cache and is_fresh:
             return _CATALOG_CACHE["slug_map"]
 
+    # Try build-time catalog file first (fast, no API call needed).
+    file_catalog = _load_catalog_from_file()
+    if file_catalog and not force_refresh:
+        with _RULES_LOCK:
+            if not _CATALOG_CACHE["slug_map"]:
+                _CATALOG_CACHE["slug_map"] = file_catalog
+                _CATALOG_CACHE["fetched_at"] = now
+                _CATALOG_CACHE["source"] = "file"
+                _CATALOG_CACHE["last_error"] = None
+        # Still try to refresh from BigCommerce in background if TTL expired.
+        if not has_cache or not is_fresh:
+            try:
+                catalog_map = _fetch_bigcommerce_catalog_map()
+                if catalog_map:
+                    with _RULES_LOCK:
+                        _CATALOG_CACHE["slug_map"] = catalog_map
+                        _CATALOG_CACHE["fetched_at"] = now
+                        _CATALOG_CACHE["source"] = "bigcommerce"
+                        _CATALOG_CACHE["last_error"] = None
+            except Exception as exc:
+                with _RULES_LOCK:
+                    _CATALOG_CACHE["last_error"] = str(exc)
+        return _CATALOG_CACHE["slug_map"]
+
+    # No file — fall back to live BigCommerce API fetch.
     try:
         catalog_map = _fetch_bigcommerce_catalog_map()
         with _RULES_LOCK:
@@ -1339,11 +1388,23 @@ def get_catalog():
                 row = dict(catalog_map.get(key, {}))
                 break
         if not row:
+            # Also try variant/shorter slug candidates before giving up.
+            for candidate in _source_lookup_candidates(slug):
+                for key in _candidate_catalog_keys(candidate):
+                    if key in catalog_map:
+                        row = dict(catalog_map.get(key, {}))
+                        break
+                if row:
+                    break
+        if not row:
             row = {"name": slug}
         if not row.get("url"):
             row["url"] = _build_storefront_url(slug)
         elif row.get("url", "").startswith("/") and STOREFRONT_BASE_URL:
             row["url"] = f"{STOREFRONT_BASE_URL}{row['url']}"
+        # Always include price key so widget can display it (None when unknown).
+        if "price" not in row:
+            row["price"] = None
         items[slug] = row
     return jsonify({"items": items})
 

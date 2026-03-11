@@ -118,7 +118,6 @@ def _fetch_catalog_prices() -> dict:
                 params={
                     "page": page,
                     "limit": limit,
-                    "is_visible": True,
                     "include_fields": "id,name,price,custom_url",
                 },
                 timeout=30,
@@ -129,6 +128,8 @@ def _fetch_catalog_prices() -> dict:
             print(f"  Catalog fetch error (page {page}): {exc}", file=sys.stderr)
             break
         rows = payload.get("data", [])
+        meta = payload.get("meta", {})
+        pagination = meta.get("pagination", {}) if isinstance(meta, dict) else {}
         for row in rows:
             custom_url = (row.get("custom_url") or {}).get("url") or ""
             slug = custom_url.strip("/")
@@ -138,11 +139,10 @@ def _fetch_catalog_prices() -> dict:
                     prices[slug] = float(price)
                 except (TypeError, ValueError):
                     pass
-        meta = payload.get("meta", {}).get("pagination", {})
         if total_pages is None:
-            total_pages = meta.get("total_pages")
-            if total_pages is None and meta.get("total") is not None:
-                total = int(meta["total"])
+            total_pages = pagination.get("total_pages")
+            if total_pages is None and pagination.get("total") is not None:
+                total = int(pagination["total"])
                 total_pages = math.ceil(total / limit) if total else 1
             if total_pages is None:
                 total_pages = 1

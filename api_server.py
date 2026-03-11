@@ -67,7 +67,7 @@ PRODUCT_TYPE_RULES = [
     ("helmet_accessory", ["visor", "face-shield", "faceshield", "shield", "pinlock", "cheekpad", "cheek-pad", "cheek pad", "chin curtain", "curtain", "audio-kit", "audio kit", "helmet-kit", "helmet kit"]),
     ("helmet", ["helmet"]),
     ("jersey", ["jersey", "motocross-shirt", "mx-shirt"]),
-    ("jacket", ["jacket", "coat", "parka", "suit", "race-suit"]),
+    ("jacket", ["jacket", "coat", "parka", "suit", "race-suit", "gp-tech"]),
     ("pants", ["pant", "trouser", "bibs"]),
     ("gloves", ["glove", "gauntlet"]),
     ("boots", ["boot"]),
@@ -615,7 +615,7 @@ def _is_race_suit(product_id: str) -> bool:
     if _detect_product_type(product_id) != "jacket":
         return False
     low = product_id.lower()
-    return "suit" in low or "race-suit" in low or "hyperspeed" in low
+    return "suit" in low or "race-suit" in low or "hyperspeed" in low or "gp-tech" in low
 
 
 # For race suits, only recommend these helmet lines: Shoei X-15, AGV Pista, Alpinestars R10 (Supertech R).
@@ -821,10 +821,12 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
         if source_type in {"helmet_accessory", "care"} and rec_type not in HELMET_ACCESSORY_ALLOWED_TYPES:
             continue
         # For visor source, allow unknown riding type for backpack/care/gloves.
+        # For race suit, allow unknown riding type for helmet/gloves/boots (we explicitly choose street racing gear).
         if not (source_type == "helmet_accessory" and rec_type in {"backpack", "care", "gloves"}):
             rec_rt = _detect_riding_type(rid)
             if source_riding in {"street", "dirt"} and (rec_rt == "unknown" or rec_rt != source_riding):
-                continue
+                if not (source_is_suit and rec_type in {"gloves", "boots", "helmet"} and rec_rt == "unknown"):
+                    continue
             if source_riding == "street" and source_street_subtype == "race" and _detect_street_subtype(rid) == "touring":
                 continue
             if source_riding == "dirt" and source_dirt_subtype == "mx" and _detect_dirt_subtype(rid) == "enduro":
@@ -900,7 +902,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                     continue
                 _rec_rt_a = _detect_riding_type(rid)
                 if source_riding in {"street", "dirt"} and (_rec_rt_a == "unknown" or _rec_rt_a != source_riding):
-                    continue
+                    if not (source_is_suit and rec_type in {"gloves", "boots", "helmet"} and _rec_rt_a == "unknown"):
+                        continue
                 if source_riding == "street" and source_street_subtype == "race" and _detect_street_subtype(rid) == "touring":
                     continue
                 if source_riding == "dirt" and source_dirt_subtype == "mx" and _detect_dirt_subtype(rid) == "enduro":
@@ -947,7 +950,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                 continue
             _rec_rt_b = _detect_riding_type(rid)
             if source_riding in {"street", "dirt"} and (_rec_rt_b == "unknown" or _rec_rt_b != source_riding):
-                continue
+                if not (source_is_suit and rec_type in {"gloves", "boots", "helmet"} and _rec_rt_b == "unknown"):
+                    continue
             if source_riding == "street" and source_street_subtype == "race" and _detect_street_subtype(rid) == "touring":
                 continue
             if source_riding == "dirt" and source_dirt_subtype == "mx" and _detect_dirt_subtype(rid) == "enduro":

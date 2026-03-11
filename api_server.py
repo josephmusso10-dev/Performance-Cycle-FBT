@@ -73,7 +73,7 @@ PRODUCT_TYPE_RULES = [
     ("boots", ["boot"]),
     ("hydration", ["hydration", "hydradri", "hydralite", "reservoir", "water-pack", "water pack", "bladder"]),
     ("luggage", ["tail-bag", "tail bag", "tank-bag", "tank bag", "drypack", "duffel", "fender-bag", "fender pack", "tool-pack", "tool pack", "toolbag", "fanny", "waist pack", "hip pack", "sling"]),
-    ("backpack", ["backpack", "luggage"]),
+    ("backpack", ["backpack", "luggage", "airbag"]),
     ("communication", ["communication", "intercom", "bluetooth", "headset", "sena", "cardo", "boss audio"]),
     ("protection", ["protector", "armor", "armour", "chest", "back protector"]),
     ("air_filter", ["air-filter", "air filter", "filter"]),

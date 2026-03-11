@@ -66,6 +66,7 @@ PRODUCT_TYPE_RULES = [
     ("care", ["helmet-care", "helmet care", "windshield-clean", "windshield clean", "visor-clean", "visor clean", "helmet-clean", "helmet clean"]),
     ("helmet_accessory", ["visor", "face-shield", "faceshield", "shield", "pinlock", "cheekpad", "cheek-pad", "cheek pad", "chin curtain", "curtain", "audio-kit", "audio kit", "helmet-kit", "helmet kit"]),
     ("helmet", ["helmet"]),
+    ("tshirt", ["t-shirt"]),
     ("jersey", ["jersey", "motocross-shirt", "mx-shirt"]),
     ("jacket", ["jacket", "coat", "parka", "suit", "race-suit", "gp-tech"]),
     ("pants", ["pant", "trouser", "bibs"]),
@@ -103,6 +104,7 @@ RUNTIME_COMPLEMENTARY_TYPES = {
     "communication": ["helmet_accessory", "gloves"],
     "protection": ["jacket", "pants", "gloves"],
     "care": ["helmet_accessory", "backpack"],
+    "tshirt": ["tshirt"],
 }
 GEAR_TYPES = {
     "helmet", "helmet_accessory", "jacket", "jersey", "pants", "gloves", "boots",
@@ -111,6 +113,7 @@ GEAR_TYPES = {
 PARTS_TYPES = {"air_filter", "oil", "tire", "brake", "chain", "parts"}
 # Types for which we never filter by price tier — if they pass all other rules, always recommend them.
 TIER_EXEMPT_TYPES = {"parts", "oil", "chain", "air_filter", "brake", "helmet_accessory", "care"}
+MULTI_REC_TYPES = {"tshirt"}
 VALID_TIERS = {"budget", "mid", "premium", "elite"}
 # Per-type tier bands (budget_max, mid_max, premium_max) for catalog fallback tier.
 TIER_BANDS = {
@@ -2035,7 +2038,7 @@ def get_frequently_bought_together():
             rec_info.items(),
             key=lambda x: (-x[1]["count"], PRIORITY_RANK.get(x[1].get("priority", ""), 99)),
         )
-        if _detect_product_type(rid) not in cart_types
+        if _detect_product_type(rid) not in cart_types or _detect_product_type(rid) in MULTI_REC_TYPES
     ]
 
     return jsonify({

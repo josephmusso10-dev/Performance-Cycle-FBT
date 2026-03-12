@@ -658,6 +658,12 @@ def _is_tech_air_5_plasma(slug: str) -> bool:
     return "tech-air-5" in low and "plasma" in low
 
 
+def _is_airbag_product(slug: str) -> bool:
+    """True if slug is an airbag vest/backpack — exclude from luggage-only recs."""
+    low = (slug or "").lower()
+    return "airbag" in low or "tech-air" in low
+
+
 def _is_womens_product(slug: str) -> bool:
     text = _normalize_slug_text(slug).replace("-", " ")
     return any(kw in text for kw in WOMENS_PRODUCT_KEYWORDS)
@@ -1239,40 +1245,24 @@ def _pick_recommendations_for_electric_bike(product_id: str) -> list:
 
 
 def _pick_recommendations_for_tech_air_5_plasma(product_id: str) -> list:
-    """For Tech-Air 5 Plasma only: recommend a backpack (like other airbag products)."""
-    with _RULES_LOCK:
-        rec_tier_map = _RULES_CACHE.get("rec_tier_map") or {}
+    """For Tech-Air 5 Plasma only: recommend luggage/backpacks only (exclude other airbag products)."""
     selected: list[dict] = []
     selected_ids: set[str] = set()
-    seen_types: set[str] = set()
-    desired_types = ["backpack"]
-    for desired_type in desired_types:
+    # Backpack and luggage pools can include airbag vests/backpacks; we want only luggage/backpacks.
+    candidate_types = ["backpack", "luggage"]
+    with _RULES_LOCK:
+        pool = _GLOBAL_REC_BY_TYPE
+    for rec_type in candidate_types:
         if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
             break
-        if desired_type in seen_types:
-            continue
-        rid = _pick_global_candidate(
-            product_id,
-            source_type="protection",
-            source_brand="",
-            source_riding="street",
-            source_street_subtype="",
-            source_dirt_subtype="",
-            rec_type=desired_type,
-            selected_ids=selected_ids,
-            source_tier=None,
-            rec_tier_map=rec_tier_map,
-            boots_slug_must_contain=None,
-            helmet_slug_any_of=None,
-            gloves_racing_only=False,
-            source_is_suit=False,
-            apparel_race_only=False,
-        )
-        if not rid:
-            continue
-        selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})
-        selected_ids.add(rid)
-        seen_types.add(desired_type)
+        for rid in pool.get(rec_type, []):
+            if rid in selected_ids or rid == product_id:
+                continue
+            if _is_airbag_product(rid):
+                continue
+            selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})
+            selected_ids.add(rid)
+            break
     return selected
 
 

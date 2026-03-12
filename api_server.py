@@ -156,7 +156,7 @@ NO_TIRE_VEHICLE_TERMS = {"super-73", "super73", "talaria", "falcon-79", "falcon7
 # Electric/specialty bikes (Super 73, eRides, Talaria, Stage 2, 79 bikes): recommend only moto gear (helmet, boots, gloves).
 ELECTRIC_BIKE_GEAR_REC_TERMS = frozenset({
     "super-73", "super73", "talaria", "falcon-79", "falcon79", "eride", "e-ride",
-    "stage-2", "stage2", "79-bike",
+    "stage-2", "stage2", "79-bike", "79bike",
 })
 FREECOM_PRODUCTS = {
     "cardo-freecom-2x-jbl-single-unit",

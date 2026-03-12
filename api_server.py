@@ -223,7 +223,7 @@ RIDING_TYPE_RULES = {
         "tech 10", "tech-10",
         "supervented",          # Alpinestars Tech-10 Supervented MX boots
         "tech 7 boot", "tech 5 boot",  # Alpinestars Tech-7 / Tech-5 MX boots (avoids matching Tech-Air airbag vests)
-        "sg 22", "sg-22", "sg 12", "sg-12",  # Gaerne SG-22 / SG-12 MX boots
+        "sg 22", "sg-22", "sg22", "sg 12", "sg-12", "sg12",  # Gaerne SG-22 / SG-12 MX boots
         "crossfire",            # Sidi Crossfire MX boots
         "pro air",  # dirt gear line (e.g. TCX RT-Race Pro Air boots, Troy Lee GP Pro Air)
     ],

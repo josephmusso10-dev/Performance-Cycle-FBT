@@ -159,6 +159,13 @@ FREECOM_PRODUCTS = {
 }
 FREECOM_AUDIO_KIT = "cardo-freecom-2nd-helmet-audio-kit"
 
+# Products that should never appear as recommendations (Fox street/adventure gear
+# that would otherwise surface for dirt sources since Fox is a DIRT_ONLY_BRANDS brand).
+RECOMMENDATION_EXCLUDED_IDS = frozenset([
+    "fox-racing-recon-gore-tex-adventure-jacket",
+    "fox-racing-recon-gore-tex-adventure-pants",
+])
+
 # --- Helmet price tiers and matching comm systems ---
 # Premium: flagship race / top-of-line helmets
 HELMET_PREMIUM_KEYWORDS = [
@@ -1012,6 +1019,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
             for rid in _candidates_for_type(rec_type, candidates):
                 if rid in selected_ids or rid == source_product_id:
                     continue
+                if rid in RECOMMENDATION_EXCLUDED_IDS:
+                    continue
                 if not _tier_ok(rid, rec_type):
                     continue
                 if not _is_vehicle_specific(source_product_id) and _is_vehicle_specific(rid):
@@ -1061,6 +1070,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
             continue
         for rid in _candidates_for_type(rec_type, candidates):
             if rid in selected_ids or rid == source_product_id:
+                continue
+            if rid in RECOMMENDATION_EXCLUDED_IDS:
                 continue
             if not _tier_ok(rid, rec_type):
                 continue
@@ -1160,6 +1171,8 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     for rec in ordered:
         rid = (rec.get("id") or "").strip()
         if not rid:
+            continue
+        if rid in RECOMMENDATION_EXCLUDED_IDS:
             continue
         rec_type = _detect_product_type(rid)
         rec_riding = _detect_riding_type(rid)

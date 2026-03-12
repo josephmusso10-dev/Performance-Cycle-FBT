@@ -1195,13 +1195,13 @@ def _pick_recommendations_for_garmin_watch(product_id: str) -> list:
 
 
 def _pick_recommendations_for_electric_bike(product_id: str) -> list:
-    """For Super 73, eRides, Talaria, Stage 2, 79 bikes: recommend only moto gear — helmet, boots, gloves."""
+    """For Super 73, eRides, Talaria, Stage 2, 79 bikes: recommend an MX (dirt) helmet only."""
     with _RULES_LOCK:
         rec_tier_map = _RULES_CACHE.get("rec_tier_map") or {}
     selected: list[dict] = []
     selected_ids: set[str] = set()
     seen_types: set[str] = set()
-    desired_types = ["helmet", "boots", "gloves"]
+    desired_types = ["helmet"]
     for desired_type in desired_types:
         if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
             break
@@ -1211,7 +1211,7 @@ def _pick_recommendations_for_electric_bike(product_id: str) -> list:
             product_id,
             source_type="boots",
             source_brand="",
-            source_riding="street",
+            source_riding="dirt",
             source_street_subtype="",
             source_dirt_subtype="",
             rec_type=desired_type,

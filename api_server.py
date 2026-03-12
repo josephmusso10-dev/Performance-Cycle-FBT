@@ -633,12 +633,6 @@ def _is_no_tire_vehicle(slug: str) -> bool:
     return any(term in text for term in NO_TIRE_VEHICLE_TERMS)
 
 
-def _is_electric_bike_for_gear_recs(slug: str) -> bool:
-    """True for Super 73, eRides, Talaria, Stage 2, 79 bike — these always get moto gear + helmet recs only."""
-    text = (slug or "").lower().replace("-", " ").replace("_", " ")
-    return any(term.replace("-", " ") in text for term in ELECTRIC_BIKE_GEAR_REC_TERMS)
-
-
 def _is_womens_product(slug: str) -> bool:
     text = _normalize_slug_text(slug).replace("-", " ")
     return any(kw in text for kw in WOMENS_PRODUCT_KEYWORDS)
@@ -1137,44 +1131,6 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
     return "", ""
 
 
-def _pick_recommendations_for_electric_bike(product_id: str) -> list:
-    """For Super 73, eRides, Talaria, Stage 2, 79 bike: always recommend moto gear + helmet only."""
-    with _RULES_LOCK:
-        rec_tier_map = _RULES_CACHE.get("rec_tier_map") or {}
-    selected = []
-    selected_ids = set()
-    seen_types = set()
-    desired_types = ["helmet", "jacket", "pants", "gloves", "boots"]
-    for desired_type in desired_types:
-        if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
-            break
-        if desired_type in seen_types:
-            continue
-        rid = _pick_global_candidate(
-            product_id,
-            source_type="bike",
-            source_brand="",
-            source_riding="street",
-            source_street_subtype="",
-            source_dirt_subtype="",
-            desired_type,
-            selected_ids,
-            source_tier=None,
-            rec_tier_map=rec_tier_map,
-            boots_slug_must_contain=None,
-            helmet_slug_any_of=None,
-            gloves_racing_only=False,
-            source_is_suit=False,
-            apparel_race_only=False,
-        )
-        if not rid:
-            continue
-        selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})
-        selected_ids.add(rid)
-        seen_types.add(desired_type)
-    return selected
-
-
 def _apply_recommendation_constraints(product_id: str, recommendations: list) -> list:
     """
     Runtime constraints:
@@ -1185,13 +1141,6 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     # Race suits always get the fixed helmet/gloves/boots pool — no other logic needed.
     if _is_race_suit(product_id):
         return _pick_suit_recommendations(product_id)
-
-    # Electric/specialty bikes (Super 73, eRides, Talaria, Stage 2, 79 bike): moto gear + helmet only.
-    if _is_electric_bike_for_gear_recs(product_id):
-        try:
-            return _pick_recommendations_for_electric_bike(product_id)
-        except Exception:
-            pass  # fall through to normal recommendation logic on any error
 
     if _is_alpinestars_tech_boot(product_id):
         idx = hash(product_id)

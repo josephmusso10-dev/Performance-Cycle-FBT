@@ -143,6 +143,8 @@ TIER_BANDS = {
     "default": (75, 200, 500),
 }
 BACKPACK_ALLOWED_TYPES = {"hydration", "luggage"}
+# For luggage/backpack sources: only recommend luggage, backpacks, hydration (no chain, parts, air pumps, etc.).
+LUGGAGE_BACKPACK_REC_TYPES = {"hydration", "luggage", "backpack"}
 HELMET_ACCESSORY_ALLOWED_TYPES = {"helmet_accessory", "backpack", "care", "gloves"}
 VEHICLE_SPECIFIC_TERMS = {
     "harley", "davidson", "goldwing", "indian", "polaris", "can-am",
@@ -943,6 +945,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
             continue
         if source_type == "backpack" and rec_type == "backpack":
             continue
+        if source_type == "luggage" and rec_type not in LUGGAGE_BACKPACK_REC_TYPES:
+            continue
         if source_riding == "dirt" and source_dirt_subtype == "mx" and _detect_dirt_subtype(rid) == "enduro":
             continue
         if _is_womens_product(rid) != _is_womens_product(source_product_id):
@@ -1067,6 +1071,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
                     continue
                 if source_type == "backpack" and rec_type == "backpack":
                     continue
+                if source_type == "luggage" and rec_type not in LUGGAGE_BACKPACK_REC_TYPES:
+                    continue
                 if source_type == "helmet" and rec_type == "helmet":
                     continue
                 if source_type == "helmet" and rec_type == "helmet_accessory":
@@ -1118,6 +1124,8 @@ def _pick_global_candidate_any(source_product_id: str, source_type: str, source_
             if source_type == "backpack" and rec_type not in BACKPACK_ALLOWED_TYPES:
                 continue
             if source_type == "backpack" and rec_type == "backpack":
+                continue
+            if source_type == "luggage" and rec_type not in LUGGAGE_BACKPACK_REC_TYPES:
                 continue
             if source_type == "helmet" and rec_type == "helmet":
                 continue
@@ -1291,6 +1299,8 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         if source_type == "backpack" and rec_type not in BACKPACK_ALLOWED_TYPES:
             continue
         if source_type == "backpack" and rec_type == "backpack":
+            continue
+        if source_type == "luggage" and rec_type not in LUGGAGE_BACKPACK_REC_TYPES:
             continue
         # T-shirts and hats only ever recommend other t-shirts and hats.
         if source_type in {"tshirt", "hat"} and rec_type not in {"tshirt", "hat"}:
@@ -1519,6 +1529,10 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
         exclude_types = {"pants", "jacket", "helmet_accessory", "communication"}
     elif source_type in {"tshirt", "hat"}:
         exclude_types = {t for t in _GLOBAL_REC_BY_TYPE if t not in {"tshirt", "hat"}}
+    elif source_type in {"backpack", "luggage"}:
+        exclude_types = {t for t in _GLOBAL_REC_BY_TYPE if t not in LUGGAGE_BACKPACK_REC_TYPES}
+        if source_type == "backpack":
+            exclude_types.add("backpack")
     else:
         exclude_types = set()
     if source_type == "helmet":

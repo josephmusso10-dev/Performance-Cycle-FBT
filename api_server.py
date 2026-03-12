@@ -2346,30 +2346,21 @@ def get_frequently_bought_together():
         return jsonify({"recommendations": [], "message": "No products in cart"})
 
     explicit_map, category_rules = _load_rules_from_csv()
+
+    # Recommend only for the most recently added cart item (last in the list).
+    source_product_id = cart_product_ids[-1]
     rec_info = {}  # id -> {count, label, priority}
-    for cart_id in cart_product_ids:
-        related_list = get_recommendations(cart_id, explicit_map, category_rules)
-        for item in related_list:
-            r = item if isinstance(item, dict) else {"id": item, "label": ""}
-            rid = r.get("id", r) if isinstance(r, dict) else r
-            if rid not in cart_product_ids:
-                if rid not in rec_info:
-                    rec_info[rid] = {
-                        "count": 0,
-                        "label": r.get("label", "") if isinstance(r, dict) else "",
-                        "priority": r.get("priority", "") if isinstance(r, dict) else "",
-                    }
-                rec_info[rid]["count"] += 1
-                if r.get("label") and not rec_info[rid]["label"]:
-                    rec_info[rid]["label"] = r.get("label", "")
-                # Keep the best (highest) priority if multiple cart items suggest same recommendation
-                current = rec_info[rid].get("priority", "")
-                incoming = r.get("priority", "") if isinstance(r, dict) else ""
-                if incoming and (
-                    not current
-                    or PRIORITY_RANK.get(incoming, 99) < PRIORITY_RANK.get(current, 99)
-                ):
-                    rec_info[rid]["priority"] = incoming
+    related_list = get_recommendations(source_product_id, explicit_map, category_rules)
+    for item in related_list:
+        r = item if isinstance(item, dict) else {"id": item, "label": ""}
+        rid = r.get("id", r) if isinstance(r, dict) else r
+        if rid not in cart_product_ids:
+            if rid not in rec_info:
+                rec_info[rid] = {
+                    "count": 1,
+                    "label": r.get("label", "") if isinstance(r, dict) else "",
+                    "priority": r.get("priority", "") if isinstance(r, dict) else "",
+                }
 
     cart_types = set()
     for pid in cart_product_ids:

@@ -652,6 +652,12 @@ def _is_garmin_watch(slug: str) -> bool:
     return "garmin" in low and "watch" in low
 
 
+def _is_tech_air_5_plasma(slug: str) -> bool:
+    """True for Tech-Air 5 Plasma only — recommend a backpack like other airbag products."""
+    low = (slug or "").lower()
+    return "tech-air-5" in low and "plasma" in low
+
+
 def _is_womens_product(slug: str) -> bool:
     text = _normalize_slug_text(slug).replace("-", " ")
     return any(kw in text for kw in WOMENS_PRODUCT_KEYWORDS)
@@ -1232,6 +1238,44 @@ def _pick_recommendations_for_electric_bike(product_id: str) -> list:
     return selected
 
 
+def _pick_recommendations_for_tech_air_5_plasma(product_id: str) -> list:
+    """For Tech-Air 5 Plasma only: recommend a backpack (like other airbag products)."""
+    with _RULES_LOCK:
+        rec_tier_map = _RULES_CACHE.get("rec_tier_map") or {}
+    selected: list[dict] = []
+    selected_ids: set[str] = set()
+    seen_types: set[str] = set()
+    desired_types = ["backpack"]
+    for desired_type in desired_types:
+        if len(selected) >= PER_PRODUCT_RECOMMENDATION_LIMIT:
+            break
+        if desired_type in seen_types:
+            continue
+        rid = _pick_global_candidate(
+            product_id,
+            source_type="protection",
+            source_brand="",
+            source_riding="street",
+            source_street_subtype="",
+            source_dirt_subtype="",
+            rec_type=desired_type,
+            selected_ids=selected_ids,
+            source_tier=None,
+            rec_tier_map=rec_tier_map,
+            boots_slug_must_contain=None,
+            helmet_slug_any_of=None,
+            gloves_racing_only=False,
+            source_is_suit=False,
+            apparel_race_only=False,
+        )
+        if not rid:
+            continue
+        selected.append({"id": rid, "label": "Recommended item", "priority": "Tertiary"})
+        selected_ids.add(rid)
+        seen_types.add(desired_type)
+    return selected
+
+
 def _apply_recommendation_constraints(product_id: str, recommendations: list) -> list:
     """
     Runtime constraints:
@@ -1250,6 +1294,10 @@ def _apply_recommendation_constraints(product_id: str, recommendations: list) ->
     # Electric/specialty bikes (Super 73, eRides, Talaria, Stage 2, 79): only moto gear — helmet, boots, gloves.
     if _is_electric_bike_for_gear_recs(product_id):
         return _pick_recommendations_for_electric_bike(product_id)
+
+    # Tech-Air 5 Plasma only: recommend a backpack (like other airbag products).
+    if _is_tech_air_5_plasma(product_id):
+        return _pick_recommendations_for_tech_air_5_plasma(product_id)
 
     if _is_alpinestars_tech_boot(product_id):
         idx = hash(product_id)

@@ -159,11 +159,17 @@ FREECOM_PRODUCTS = {
 }
 FREECOM_AUDIO_KIT = "cardo-freecom-2nd-helmet-audio-kit"
 
-# Products that should never appear as recommendations (Fox street/adventure gear
-# that would otherwise surface for dirt sources since Fox is a DIRT_ONLY_BRANDS brand).
-RECOMMENDATION_EXCLUDED_IDS = frozenset([
+# Products that should never appear as recommendations regardless of cart context.
+# (Keep as frozenset() placeholder for future use; Fox Gore-Tex moved to FOX_GORETEX_IDS below.)
+RECOMMENDATION_EXCLUDED_IDS = frozenset()
+
+# Fox Gore-Tex adventure products: only recommend when at least one is already in the cart.
+# These items are adventure/street gear that should not surface for pure moto/dirt carts.
+FOX_GORETEX_IDS = frozenset([
     "fox-racing-recon-gore-tex-adventure-jacket",
     "fox-racing-recon-gore-tex-adventure-pants",
+    "fox-racing-defend-gore-tex-adventure-jacket",
+    "fox-racing-defend-gore-tex-adventure-pants",
 ])
 
 # --- Helmet price tiers and matching comm systems ---
@@ -2373,13 +2379,20 @@ def get_frequently_bought_together():
         # detect them via race-helmet keywords so same-type filtering still works.
         if _is_race_helmet(pid):
             cart_types.add("helmet")
+
+    # Only show Fox Gore-Tex adventure items if at least one of them is already in the cart.
+    cart_has_fox_goretex = any(cid in FOX_GORETEX_IDS for cid in cart_product_ids)
+
     recommendations = [
         {"id": rid, "label": info["label"] or None, "priority": info.get("priority") or None}
         for rid, info in sorted(
             rec_info.items(),
             key=lambda x: (-x[1]["count"], PRIORITY_RANK.get(x[1].get("priority", ""), 99)),
         )
-        if _detect_product_type(rid) not in cart_types or _detect_product_type(rid) in MULTI_REC_TYPES
+        if (
+            (_detect_product_type(rid) not in cart_types or _detect_product_type(rid) in MULTI_REC_TYPES)
+            and (rid not in FOX_GORETEX_IDS or cart_has_fox_goretex)
+        )
     ]
 
     return jsonify({

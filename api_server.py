@@ -151,16 +151,6 @@ VEHICLE_SPECIFIC_TERMS = {
 # Electric / specialty bikes that use non-standard tires — never recommend
 # generic motorcycle tires for these source products.
 NO_TIRE_VEHICLE_TERMS = {"super-73", "super73", "talaria", "falcon-79", "falcon79", "eride", "e-ride"}
-
-# Bikes that always get "moto gear + helmet" recommendations only (Super 73, eRides, Talaria, Stage 2, 79 bike).
-# Avoid standalone "79" so we don't match random product slugs that contain that number.
-ELECTRIC_BIKE_GEAR_REC_TERMS = {
-    "super-73", "super73", "super 73",
-    "talaria",
-    "eride", "e-ride", "e ride",
-    "stage-2", "stage2", "stage 2",
-    "falcon-79", "falcon79", "79 bike", "79-bike", "79bike",
-}
 FREECOM_PRODUCTS = {
     "cardo-freecom-2x-jbl-single-unit",
     "cardo-freecom-2x-jbl-dual-pack",

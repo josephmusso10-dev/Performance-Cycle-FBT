@@ -258,7 +258,7 @@ WOMENS_PRODUCT_KEYWORDS = ["womens", "women s", "ladies", "women's", "female"]
 YOUTH_PRODUCT_KEYWORDS = ["youth", "kids", "kid s", "child", "children", "junior", " jr", "-jr"]
 DIRT_ONLY_BRANDS = {
     "fly", "fasthouse", "troy", "seven", "shift", "thor", "one", "leatt",
-    "6d",
+    "fox", "6d",
 }
 STREET_ONLY_BRANDS = {
     "dainese", "cortech", "noru", "highway", "rst", "olympia", "firstgear",

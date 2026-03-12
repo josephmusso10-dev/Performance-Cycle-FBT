@@ -885,6 +885,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
                 continue
             if rid == source_product_id:
                 continue
+            if rid in RECOMMENDATION_EXCLUDED_IDS:
+                continue
             if not _tier_ok(rid):
                 continue
             rec_brand = _extract_brand_token(rid)
@@ -895,6 +897,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
                 continue
             if rid == source_product_id:
                 continue
+            if rid in RECOMMENDATION_EXCLUDED_IDS:
+                continue
             if not _tier_ok(rid):
                 continue
             rec_brand = _extract_brand_token(rid)
@@ -904,6 +908,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
     # First pass: prefer same brand
     for rid in candidates:
         if rid in selected_ids or rid == source_product_id:
+            continue
+        if rid in RECOMMENDATION_EXCLUDED_IDS:
             continue
         if not _tier_ok(rid):
             continue
@@ -938,6 +944,8 @@ def _pick_global_candidate(source_product_id: str, source_type: str, source_bran
     viable = []
     for rid in candidates:
         if rid in selected_ids or rid == source_product_id:
+            continue
+        if rid in RECOMMENDATION_EXCLUDED_IDS:
             continue
         if not _tier_ok(rid):
             continue
